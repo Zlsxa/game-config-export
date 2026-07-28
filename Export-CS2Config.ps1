@@ -115,6 +115,20 @@ $ConvarLabels = @{
     'fps_max'                  = 'FPS limit'
 }
 
+# Category rules for grouping game convars in the readable summary.
+# Evaluated top-to-bottom; first regex match wins. Anything unmatched -> "Other".
+$ConvarCategories = @(
+    @{ Name = 'Aim / Mouse';           Pattern = '^(sensitivity|zoom_sensitivity_ratio|sensitivity_y_scale|m_yaw|m_pitch|m_raw|m_customaccel|m_mouse)' }
+    @{ Name = 'Crosshair';             Pattern = '^(crosshair$|cl_crosshair|cl_fixedcrosshairgap)' }
+    @{ Name = 'Grenade crosshair';     Pattern = '^cl_grenade' }
+    @{ Name = 'Viewmodel / Weapon';    Pattern = '^(viewmodel_|cl_prefer_lefthanded|cl_righthand|cl_silencer_mode|cl_sniper_auto_rezoom|cl_debounce_zoom|cl_ironsight|cl_showloadout)' }
+    @{ Name = 'HUD / Radar';           Pattern = '^(hud_|cl_hud|cl_radar|cl_show|safezone|cl_teamid)' }
+    @{ Name = 'Buy menu';              Pattern = '^(cl_buymenu|cl_buywheel|cl_use_opens_buy_menu|cl_inventory)' }
+    @{ Name = 'Audio';                 Pattern = '^(volume|voice_|snd_)' }
+    @{ Name = 'Movement';              Pattern = '^option_' }
+    @{ Name = 'Controller / Joystick'; Pattern = '^joy_' }
+)
+
 # ===========================================================================
 #  Helpers
 # ===========================================================================
@@ -262,18 +276,36 @@ foreach ($acc in $accounts) {
     }
     [void]$h.AppendLine('')
 
-    # Game convars (ALL, minus identifying ones)
+    # Game convars (ALL, minus identifying ones), grouped by category
     if ($acc.Convars) {
         $cv = ConvertFrom-KeyValues (Get-Content $acc.Convars -Raw)
-        [void]$h.AppendLine("--- GAME SETTINGS ($($cv.Count) convars) ---")
-        [void]$h.AppendLine('')
+
+        # Bucket every convar into its category (first matching rule wins)
+        $buckets = [ordered]@{}
+        foreach ($c in $ConvarCategories) { $buckets[$c.Name] = @() }
+        $buckets['Other'] = @()
+        $shown = 0
         foreach ($k in $cv.Keys) {
             if (Test-Sensitive $k) { continue }
-            $line = "  {0,-40} : {1}" -f $k, $cv[$k]
-            if ($ConvarLabels.ContainsKey($k)) { $line += ("   # {0}" -f $ConvarLabels[$k]) }
-            [void]$h.AppendLine($line)
+            $cat = 'Other'
+            foreach ($c in $ConvarCategories) { if ($k -match $c.Pattern) { $cat = $c.Name; break } }
+            $buckets[$cat] += $k
+            $shown++
         }
+
+        [void]$h.AppendLine("--- GAME SETTINGS ($shown convars) ---")
         [void]$h.AppendLine('')
+        foreach ($catName in $buckets.Keys) {
+            $keys = $buckets[$catName]
+            if (-not $keys) { continue }
+            [void]$h.AppendLine("  [ $catName ]")
+            foreach ($k in $keys) {
+                $line = "  {0,-40} : {1}" -f $k, $cv[$k]
+                if ($ConvarLabels.ContainsKey($k)) { $line += ("   # {0}" -f $ConvarLabels[$k]) }
+                [void]$h.AppendLine($line)
+            }
+            [void]$h.AppendLine('')
+        }
     }
 
     # Keybinds (ALL present in the file)
