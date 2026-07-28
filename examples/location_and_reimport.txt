@@ -1,0 +1,28 @@
+==============================================
+  CS2 CONFIG LOCATION & RE-IMPORT
+==============================================
+
+ORIGINAL LOCATION (this account's CS2 folder):
+  C:\Program Files (x86)\Steam\userdata\XXXXXXXXX\730
+
+Settings files detected:
+  - ...\730\local\cfg\cs2_video.txt          (graphics / video)
+  - ...\730\remote\cs2_user_convars.vcfg     (game settings)
+  - ...\730\remote\cs2_user_keys.vcfg        (keybinds)
+
+----------------------------------------------
+HOW TO RE-IMPORT THIS CONFIG (this PC or another):
+----------------------------------------------
+  1. Fully close CS2 AND Steam.
+  2. (Recommended) Disable Steam Cloud for CS2 before copying,
+     otherwise the Cloud may overwrite your restored files:
+     Steam > right-click CS2 > Properties > General > uncheck Steam Cloud.
+  3. Copy the CONTENTS of "raw_config_for_reimport\" into the target
+     account's 730 folder:
+       ...\Steam\userdata\<YOUR_ID>\730\
+     (<YOUR_ID> = the folder present in ...\Steam\userdata\)
+  4. Accept overwriting the existing files.
+  5. Restart Steam then CS2. Verify the settings in-game.
+
+Note: some files (.dt, remotecache.vdf) are caches; copying them back
+      is harmless, Steam regenerates them if needed.

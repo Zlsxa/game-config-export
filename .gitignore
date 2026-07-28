@@ -1,0 +1,19 @@
+# --- Exports produced by the script (may contain personal data) ---
+CS2_Config_Export/
+CS2_Backup_*/
+*_Backup_*/
+
+# --- Raw CS2 config files, in case they get dropped here by mistake ---
+cs2_video.txt
+cs2_user_convars*.vcfg
+cs2_user_keys*.vcfg
+*.vcfg
+!examples/**/*.vcfg
+
+# --- Local tool / editor settings ---
+.vs/
+.idea/
+.vscode/
+*.user
+Thumbs.db
+Desktop.ini
