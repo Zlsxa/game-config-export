@@ -5,7 +5,7 @@ A **PowerShell** script that backs up and exports your **Counter-Strike 2** conf
 For every Steam account it finds, it produces:
 
 1. 📦 **`raw_config_for_reimport/`** — an **exact copy** of the config files, ready to be re-imported as-is.
-2. 📄 **`readable_settings.txt`** — a **human-readable** summary (e.g. `Global GPU detail: High`, `Shadow quality: Low`, crosshair, sensitivity, keybinds…).
+2. 📄 **`readable_settings.txt`** — a **human-readable** summary listing **every** setting (all graphics options, all game convars, all keybinds) with friendly labels where known (e.g. `Global GPU detail: High`, `Shadow quality: Low`). Identifying values are always omitted, so it's safe to share.
 3. 🗺️ **`location_and_reimport.txt`** — where the original config lives and **how to re-import it** (same PC or another one).
 
 👉 See the [`examples/`](examples/) folder for a preview of what the script generates.

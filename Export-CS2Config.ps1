@@ -6,10 +6,15 @@
     This script:
       1. Automatically locates Steam and EVERY account that has a CS2 config.
       2. Copies the raw config files, byte-for-byte, ready to be re-imported.
-      3. Generates a human-readable .txt (e.g. Graphics = High, Shadows = Low).
+      3. Generates a human-readable .txt listing ALL settings (graphics, game
+         convars, keybinds) - friendly labels where known, raw names otherwise.
       4. Generates a .txt explaining WHERE the config lives and HOW to re-import it.
 
     The script is READ-ONLY on your Steam installation: it never changes your settings.
+
+    Privacy: identifying values (Steam name, passwords) are ALWAYS excluded from the
+    readable summary, so it is safe to share. Use -Anonymize to also strip them from
+    the raw copy.
 
 .PARAMETER OutputRoot
     Root folder to write the export to. Default: your Desktop.
@@ -18,8 +23,8 @@
     Optional: force the Steam install path if auto-detection fails.
 
 .PARAMETER Anonymize
-    Strips identifying info (Steam name) from the exported copy.
-    Use this if you intend to SHARE your config publicly.
+    Strips identifying info (Steam name, etc.) from the raw exported copy too.
+    Use this if you intend to SHARE the raw config publicly.
 
 .EXAMPLE
     .\Export-CS2Config.ps1
@@ -40,53 +45,19 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# ---------------------------------------------------------------------------
-#  1. Locate the Steam installation
-# ---------------------------------------------------------------------------
-function Get-SteamPath {
-    try {
-        $p = (Get-ItemProperty -Path 'HKCU:\Software\Valve\Steam' -Name SteamPath -ErrorAction Stop).SteamPath
-        if ($p -and (Test-Path $p)) { return (Resolve-Path $p).Path }
-    } catch {}
-    try {
-        $p = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam' -Name InstallPath -ErrorAction Stop).InstallPath
-        if ($p -and (Test-Path $p)) { return (Resolve-Path $p).Path }
-    } catch {}
-    foreach ($candidate in @("${env:ProgramFiles(x86)}\Steam", "$env:ProgramFiles\Steam", 'C:\Steam')) {
-        if ($candidate -and (Test-Path $candidate)) { return (Resolve-Path $candidate).Path }
-    }
-    return $null
-}
+# ===========================================================================
+#  Data: translations
+# ===========================================================================
 
-# ---------------------------------------------------------------------------
-#  2. Flat "KeyValues" parser: grabs every "key" "value" pair.
-#     Works for cs2_video.txt and the .vcfg files (even nested), because block
-#     headers ("config", "convars", ...) have no inline value.
-# ---------------------------------------------------------------------------
-function ConvertFrom-KeyValues {
-    param([string]$Content)
-    $result = [ordered]@{}
-    $regex = [regex]'"([^"]+)"\s+"([^"]*)"'
-    foreach ($m in $regex.Matches($Content)) { $result[$m.Groups[1].Value] = $m.Groups[2].Value }
-    return $result
-}
+# Convars/keys whose VALUES identify you. Always hidden from the readable
+# summary; stripped from the raw copy when -Anonymize is used.
+$SensitiveKeys = @('name', 'password', 'cl_clanid', 'cl_name', 'steamid',
+                   'steamidtext', 'last_name', 'player_name')
 
-# ---------------------------------------------------------------------------
-#  3. Human-readable translations
-# ---------------------------------------------------------------------------
 $QualityLevels = @{ '0' = 'Low'; '1' = 'Medium'; '2' = 'High'; '3' = 'Very High' }
 
-function Convert-Quality { param($v) if ($QualityLevels.ContainsKey("$v")) { $QualityLevels["$v"] } else { "$v (raw value)" } }
-function Convert-Bool {
-    param($v)
-    switch ("$v".ToLower()) {
-        '1'     { 'Enabled' }  'true'  { 'Enabled' }
-        '0'     { 'Disabled' } 'false' { 'Disabled' }
-        default { "$v (raw value)" }
-    }
-}
-
-# Video settings (cs2_video.txt) — Type: quality | bool | enum | raw
+# Video settings (cs2_video.txt) -> friendly label + value type.
+# Type: quality | bool | enum | raw
 $VideoMap = [ordered]@{
     'setting.defaultres'              = @{ Label = 'Resolution - width';       Type = 'raw' }
     'setting.defaultresheight'        = @{ Label = 'Resolution - height';      Type = 'raw' }
@@ -112,35 +83,85 @@ $VideoMap = [ordered]@{
     'setting.high_dynamic_range'      = @{ Label = 'HDR';                      Type = 'quality' }
     'setting.aniso'                   = @{ Label = 'Anisotropic filtering';    Type = 'raw' }
     'setting.r_low_latency'           = @{ Label = 'Low latency (NVIDIA Reflex)'; Type = 'raw' }
+    'setting.vr_enable_hmd'           = @{ Label = 'VR headset';               Type = 'bool' }
 }
 
-# Useful game convars (cs2_user_convars*.vcfg). Identifying convars (e.g. "name")
-# are intentionally NOT listed here so the summary stays anonymous.
-$ConvarMap = [ordered]@{
-    'sensitivity'                   = 'Mouse sensitivity'
-    'zoom_sensitivity_ratio'        = 'Zoom sensitivity ratio'
-    'sensitivity_y_scale'           = 'Vertical sensitivity scale'
-    'm_yaw'                         = 'Horizontal sensitivity (m_yaw)'
-    'm_pitch'                       = 'Vertical sensitivity (m_pitch)'
-    'crosshair'                     = 'Crosshair shown'
-    'cl_crosshairstyle'             = 'Crosshair - style'
-    'cl_crosshairsize'              = 'Crosshair - size'
-    'cl_crosshairthickness'         = 'Crosshair - thickness'
-    'cl_crosshairgap'               = 'Crosshair - gap'
-    'cl_crosshairdot'               = 'Crosshair - center dot'
-    'cl_crosshaircolor'             = 'Crosshair - color (index)'
-    'cl_crosshairalpha'             = 'Crosshair - opacity'
-    'cl_crosshair_drawoutline'      = 'Crosshair - outline'
-    'viewmodel_fov'                 = 'Weapon field of view (viewmodel FOV)'
-    'viewmodel_offset_x'            = 'Weapon position - X'
-    'viewmodel_offset_y'            = 'Weapon position - Y'
-    'viewmodel_offset_z'            = 'Weapon position - Z'
-    'cl_prefer_lefthanded'          = 'Left-handed weapon'
+# Friendly labels for common game convars (annotation only; ALL convars are
+# still listed even if not in this table).
+$ConvarLabels = @{
+    'sensitivity'              = 'Mouse sensitivity'
+    'zoom_sensitivity_ratio'   = 'Zoom sensitivity ratio'
+    'sensitivity_y_scale'      = 'Vertical sensitivity scale'
+    'm_yaw'                    = 'Horizontal sensitivity'
+    'm_pitch'                  = 'Vertical sensitivity'
+    'crosshair'                = 'Crosshair shown'
+    'cl_crosshairstyle'        = 'Crosshair style'
+    'cl_crosshairsize'         = 'Crosshair size'
+    'cl_crosshairthickness'    = 'Crosshair thickness'
+    'cl_crosshairgap'          = 'Crosshair gap'
+    'cl_crosshairdot'          = 'Crosshair center dot'
+    'cl_crosshaircolor'        = 'Crosshair color (index)'
+    'cl_crosshairalpha'        = 'Crosshair opacity'
+    'cl_crosshair_drawoutline' = 'Crosshair outline'
+    'viewmodel_fov'            = 'Weapon FOV'
+    'viewmodel_offset_x'       = 'Weapon position X'
+    'viewmodel_offset_y'       = 'Weapon position Y'
+    'viewmodel_offset_z'       = 'Weapon position Z'
+    'cl_prefer_lefthanded'     = 'Left-handed weapon'
+    'cl_radar_always_centered' = 'Radar always centered'
+    'cl_radar_scale'           = 'Radar scale'
+    'voice_scale'              = 'Voice chat volume'
+    'volume'                   = 'Master volume'
+    'fps_max'                  = 'FPS limit'
 }
 
-# ---------------------------------------------------------------------------
-#  4. Main program
-# ---------------------------------------------------------------------------
+# ===========================================================================
+#  Helpers
+# ===========================================================================
+function Get-SteamPath {
+    try {
+        $p = (Get-ItemProperty -Path 'HKCU:\Software\Valve\Steam' -Name SteamPath -ErrorAction Stop).SteamPath
+        if ($p -and (Test-Path $p)) { return (Resolve-Path $p).Path }
+    } catch {}
+    try {
+        $p = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam' -Name InstallPath -ErrorAction Stop).InstallPath
+        if ($p -and (Test-Path $p)) { return (Resolve-Path $p).Path }
+    } catch {}
+    foreach ($c in @("${env:ProgramFiles(x86)}\Steam", "$env:ProgramFiles\Steam", 'C:\Steam')) {
+        if ($c -and (Test-Path $c)) { return (Resolve-Path $c).Path }
+    }
+    return $null
+}
+
+# Flat KeyValues parser: every "key" "value" pair (block headers have no inline value).
+function ConvertFrom-KeyValues {
+    param([string]$Content)
+    $result = [ordered]@{}
+    foreach ($m in [regex]::Matches($Content, '"([^"]+)"\s+"([^"]*)"')) {
+        $result[$m.Groups[1].Value] = $m.Groups[2].Value
+    }
+    return $result
+}
+
+function Test-Sensitive {
+    param([string]$Key)
+    $k = $Key.ToLower()
+    return ($SensitiveKeys -contains $k) -or ($k -like '*password*')
+}
+
+function Format-VideoValue {
+    param($Def, $Raw)
+    switch ($Def.Type) {
+        'quality' { if ($QualityLevels.ContainsKey("$Raw")) { $QualityLevels["$Raw"] } else { "$Raw (raw)" } }
+        'bool'    { switch ("$Raw".ToLower()) { {$_ -in '1','true'} { 'Enabled' } {$_ -in '0','false'} { 'Disabled' } default { "$Raw (raw)" } } }
+        'enum'    { if ($Def.Map.ContainsKey("$Raw")) { $Def.Map["$Raw"] } else { "$Raw (raw)" } }
+        default   { "$Raw" }
+    }
+}
+
+# ===========================================================================
+#  Main
+# ===========================================================================
 Write-Host ""
 Write-Host "=== CS2 configuration export ===" -ForegroundColor Cyan
 
@@ -156,16 +177,17 @@ Write-Host "Steam found: $steam" -ForegroundColor Green
 $userdataRoot = Join-Path $steam 'userdata'
 if (-not (Test-Path $userdataRoot)) { Write-Host "[ERROR] 'userdata' folder not found." -ForegroundColor Red; exit 1 }
 
-# Find every account with a CS2 folder (userdata\<id>\730) that has at least one
-# known config file (video / convars / keys), wherever it lives inside 730.
+# Find every account with a CS2 folder (userdata\<id>\730) holding a known
+# config file. One recursive scan per account (video / convars / keys).
 $accounts = @()
 foreach ($dir in Get-ChildItem $userdataRoot -Directory -ErrorAction SilentlyContinue) {
     $g730 = Join-Path $dir.FullName '730'
     if (-not (Test-Path $g730)) { continue }
 
-    $video   = Get-ChildItem $g730 -Recurse -File -Filter 'cs2_video.txt'          -ErrorAction SilentlyContinue | Select-Object -First 1
-    $convars = Get-ChildItem $g730 -Recurse -File -Filter 'cs2_user_convars*.vcfg' -ErrorAction SilentlyContinue | Select-Object -First 1
-    $keys    = Get-ChildItem $g730 -Recurse -File -Filter 'cs2_user_keys*.vcfg'    -ErrorAction SilentlyContinue | Select-Object -First 1
+    $files   = Get-ChildItem $g730 -Recurse -File -ErrorAction SilentlyContinue
+    $video   = $files | Where-Object { $_.Name -eq 'cs2_video.txt' }          | Select-Object -First 1
+    $convars = $files | Where-Object { $_.Name -like 'cs2_user_convars*.vcfg' } | Select-Object -First 1
+    $keys    = $files | Where-Object { $_.Name -like 'cs2_user_keys*.vcfg' }    | Select-Object -First 1
 
     if ($video -or $convars -or $keys) {
         $accounts += [pscustomobject]@{
@@ -185,8 +207,7 @@ if ($accounts.Count -eq 0) {
 }
 Write-Host ("CS2 account(s) found: {0}" -f $accounts.Count) -ForegroundColor Green
 
-$stamp   = Get-Date -Format 'yyyy-MM-dd_HH-mm'
-$backupR = Join-Path $OutputRoot "CS2_Backup_$stamp"
+$backupR = Join-Path $OutputRoot ("CS2_Backup_" + (Get-Date -Format 'yyyy-MM-dd_HH-mm'))
 $utf8    = New-Object System.Text.UTF8Encoding($false)
 
 foreach ($acc in $accounts) {
@@ -197,89 +218,81 @@ foreach ($acc in $accounts) {
     $rawDir = Join-Path $outDir  'raw_config_for_reimport'
     New-Item -ItemType Directory -Force -Path $rawDir | Out-Null
 
-    # 4a. EXACT copy of the whole 730 folder (full config, for re-import)
+    # --- 1. Exact raw copy of the whole 730 folder (for re-import) ---
     Copy-Item -Path (Join-Path $acc.Base730 '*') -Destination $rawDir -Recurse -Force -ErrorAction SilentlyContinue
     Write-Host "  [OK] Config copied (raw)." -ForegroundColor Green
 
-    # 4a-bis. Optional anonymization of the copy (removes the Steam name)
     if ($Anonymize) {
-        $sensitive = @('name', 'password', 'cl_clanid')
         Get-ChildItem $rawDir -Recurse -File -Filter '*.vcfg' -ErrorAction SilentlyContinue | ForEach-Object {
             $txt = [System.IO.File]::ReadAllText($_.FullName, $utf8)
-            foreach ($s in $sensitive) {
+            foreach ($s in $SensitiveKeys) {
                 $txt = [regex]::Replace($txt, "(`"$s`"\s+`")[^`"]*(`")", '${1}${2}')
             }
             [System.IO.File]::WriteAllText($_.FullName, $txt, $utf8)
         }
-        Write-Host "  [OK] Copy anonymized (Steam name removed)." -ForegroundColor Green
+        Write-Host "  [OK] Raw copy anonymized." -ForegroundColor Green
     }
 
-    # 4b. HUMAN-READABLE summary
+    # --- 2. Human-readable summary (ALL settings) ---
     $h = New-Object System.Text.StringBuilder
     [void]$h.AppendLine('==============================================')
     [void]$h.AppendLine('  CS2 CONFIGURATION - READABLE SUMMARY')
     [void]$h.AppendLine("  Exported on: $(Get-Date -Format 'yyyy-MM-dd HH:mm')")
+    [void]$h.AppendLine('  (Identifying values are omitted - safe to share.)')
     [void]$h.AppendLine('==============================================')
     [void]$h.AppendLine('')
 
-    # ---- Video / graphics ----
+    # Graphics / video
     [void]$h.AppendLine('--- GRAPHICS / VIDEO SETTINGS ---')
     [void]$h.AppendLine('')
     if ($acc.Video) {
         $kv = ConvertFrom-KeyValues (Get-Content $acc.Video -Raw)
-        foreach ($key in $VideoMap.Keys) {
-            if ($kv.Contains($key)) {
-                $def = $VideoMap[$key]; $raw = $kv[$key]
-                switch ($def.Type) {
-                    'quality' { $disp = Convert-Quality $raw }
-                    'bool'    { $disp = Convert-Bool $raw }
-                    'enum'    { $disp = if ($def.Map.ContainsKey("$raw")) { $def.Map["$raw"] } else { "$raw (raw value)" } }
-                    default   { $disp = $raw }
-                }
-                [void]$h.AppendLine(("  {0,-38} : {1}" -f $def.Label, $disp))
+        foreach ($k in $kv.Keys) {
+            if ($VideoMap.Contains($k)) {
+                $def = $VideoMap[$k]
+                [void]$h.AppendLine(("  {0,-36} : {1}" -f $def.Label, (Format-VideoValue $def $kv[$k])))
+            } else {
+                [void]$h.AppendLine(("  {0,-36} : {1}" -f ($k -replace '^setting\.', ''), $kv[$k]))
             }
         }
-        $unknown = $kv.Keys | Where-Object { $_ -like 'setting.*' -and -not $VideoMap.Contains($_) }
-        if ($unknown) {
-            [void]$h.AppendLine('')
-            [void]$h.AppendLine('  (Other video settings, raw values)')
-            foreach ($k in $unknown) { [void]$h.AppendLine(("  {0,-38} : {1}" -f ($k -replace '^setting\.', ''), $kv[$k])) }
-        }
     } else {
-        [void]$h.AppendLine('  (cs2_video.txt not found: CS2 only writes the video settings after')
-        [void]$h.AppendLine('   you open Settings > Video and click Apply at least once. Do that,')
-        [void]$h.AppendLine('   then run this script again.)')
+        [void]$h.AppendLine('  (cs2_video.txt not found: CS2 only writes video settings after you')
+        [void]$h.AppendLine('   open Settings > Video and click Apply at least once. Do that, then')
+        [void]$h.AppendLine('   run this script again.)')
     }
     [void]$h.AppendLine('')
 
-    # ---- Game convars ----
+    # Game convars (ALL, minus identifying ones)
     if ($acc.Convars) {
         $cv = ConvertFrom-KeyValues (Get-Content $acc.Convars -Raw)
-        [void]$h.AppendLine('--- GAME SETTINGS (main) ---')
+        [void]$h.AppendLine("--- GAME SETTINGS ($($cv.Count) convars) ---")
         [void]$h.AppendLine('')
-        foreach ($key in $ConvarMap.Keys) {
-            if ($cv.Contains($key)) { [void]$h.AppendLine(("  {0,-38} : {1}" -f $ConvarMap[$key], $cv[$key])) }
+        foreach ($k in $cv.Keys) {
+            if (Test-Sensitive $k) { continue }
+            $line = "  {0,-40} : {1}" -f $k, $cv[$k]
+            if ($ConvarLabels.ContainsKey($k)) { $line += ("   # {0}" -f $ConvarLabels[$k]) }
+            [void]$h.AppendLine($line)
         }
         [void]$h.AppendLine('')
     }
 
-    # ---- Keybinds ----
+    # Keybinds (ALL present in the file)
     if ($acc.Keys) {
         $kb = ConvertFrom-KeyValues (Get-Content $acc.Keys -Raw)
-        $bound = $kb.GetEnumerator() | Where-Object { $_.Value -and $_.Value -ne '<unbound>' }
-        if ($bound) {
-            [void]$h.AppendLine('--- KEYBINDS ---')
-            [void]$h.AppendLine('')
-            foreach ($b in $bound) { [void]$h.AppendLine(("  {0,-12} -> {1}" -f $b.Key, $b.Value)) }
-            [void]$h.AppendLine('')
+        [void]$h.AppendLine("--- KEYBINDS ($($kb.Count) keys) ---")
+        [void]$h.AppendLine('  (CS2 only stores custom/changed bindings here; defaults are not listed.)')
+        [void]$h.AppendLine('')
+        foreach ($b in $kb.GetEnumerator()) {
+            $action = if (-not $b.Value -or $b.Value -eq '<unbound>') { '(unbound)' } else { $b.Value }
+            [void]$h.AppendLine(("  {0,-12} -> {1}" -f $b.Key, $action))
         }
+        [void]$h.AppendLine('')
     }
 
-    $humanPath = Join-Path $outDir 'readable_settings.txt'
-    [System.IO.File]::WriteAllText($humanPath, $h.ToString(), $utf8)
+    [System.IO.File]::WriteAllText((Join-Path $outDir 'readable_settings.txt'), $h.ToString(), $utf8)
     Write-Host "  [OK] Readable summary: readable_settings.txt" -ForegroundColor Green
 
-    # 4c. LOCATION + re-import instructions
+    # --- 3. Location + re-import instructions ---
     $l = New-Object System.Text.StringBuilder
     [void]$l.AppendLine('==============================================')
     [void]$l.AppendLine('  CS2 CONFIG LOCATION & RE-IMPORT')
@@ -310,8 +323,7 @@ foreach ($acc in $accounts) {
     [void]$l.AppendLine('Note: some files (.dt, remotecache.vdf) are caches; copying them back')
     [void]$l.AppendLine('      is harmless, Steam regenerates them if needed.')
 
-    $locPath = Join-Path $outDir 'location_and_reimport.txt'
-    [System.IO.File]::WriteAllText($locPath, $l.ToString(), $utf8)
+    [System.IO.File]::WriteAllText((Join-Path $outDir 'location_and_reimport.txt'), $l.ToString(), $utf8)
     Write-Host "  [OK] Instructions: location_and_reimport.txt" -ForegroundColor Green
 }
 

@@ -1,42 +1,56 @@
 ==============================================
   CS2 CONFIGURATION - READABLE SUMMARY
   Exported on: 2026-01-01 12:00
+  (Identifying values are omitted - safe to share.)
 ==============================================
 
 --- GRAPHICS / VIDEO SETTINGS ---
 
-  Resolution - width                     : 1920
-  Resolution - height                    : 1080
-  Refresh rate (num.)                    : 240
-  Refresh rate (den.)                    : 1
-  Fullscreen                             : Enabled
-  Borderless window                      : Disabled
-  Aspect ratio                           : Widescreen (16:9)
-  Vertical sync (VSync)                  : Disabled
-  Motion blur                            : Disabled
-  Global GPU detail                      : High
-  Shadow quality                         : Low
-  Texture detail                         : Medium
-  Shader detail                          : Low
-  Anti-aliasing (MSAA)                   : High
+  Resolution - width                   : 1920
+  Resolution - height                  : 1080
+  Refresh rate (num.)                  : 240
+  Refresh rate (den.)                  : 1
+  Fullscreen                           : Enabled
+  Borderless window                    : Disabled
+  Aspect ratio                         : Widescreen (16:9)
+  Vertical sync (VSync)                : Disabled
+  Motion blur                          : Disabled
+  Global GPU detail                    : High
+  Shadow quality                       : Low
+  Texture detail                       : Medium
+  Shader detail                        : Low
+  Anti-aliasing (MSAA)                 : High
 
---- GAME SETTINGS (main) ---
+--- GAME SETTINGS (92 convars) ---
 
-  Mouse sensitivity                      : 0.850000
-  Zoom sensitivity ratio                 : 1.000000
-  Crosshair shown                        : true
-  Crosshair - style                      : 4
-  Crosshair - size                       : 2.000000
-  Crosshair - thickness                  : 1.000000
-  Crosshair - gap                        : -2.000000
-  Weapon field of view (viewmodel FOV)   : 68.000000
+  (Every convar in the file is listed. "# ..." is a friendly hint for common ones.)
 
---- KEYBINDS ---
+  cl_crosshair_drawoutline                 : false   # Crosshair outline
+  cl_crosshairalpha                        : 255   # Crosshair opacity
+  cl_crosshaircolor                        : 5   # Crosshair color (index)
+  cl_crosshairdot                          : false   # Crosshair center dot
+  cl_crosshairgap                          : -2.000000   # Crosshair gap
+  cl_crosshairsize                         : 2.000000   # Crosshair size
+  cl_crosshairstyle                        : 4   # Crosshair style
+  cl_crosshairthickness                    : 1.000000   # Crosshair thickness
+  cl_grenadecrosshair_smoke                : true
+  cl_prefer_lefthanded                     : false   # Left-handed weapon
+  crosshair                                : true   # Crosshair shown
+  m_pitch                                  : 0.022000   # Vertical sensitivity
+  m_yaw                                    : 0.022000   # Horizontal sensitivity
+  sensitivity                              : 0.850000   # Mouse sensitivity
+  viewmodel_fov                            : 68.000000   # Weapon FOV
+  zoom_sensitivity_ratio                   : 1.000000   # Zoom sensitivity ratio
+  ... (all other convars follow) ...
+
+--- KEYBINDS (19 keys) ---
+  (CS2 only stores custom/changed bindings here; defaults are not listed.)
 
   w            -> +forward
   s            -> +back
   a            -> +left
   d            -> +right
+  q            -> (unbound)
   CTRL         -> +duck
   SPACE        -> +jump
   MOUSE1       -> +attack
