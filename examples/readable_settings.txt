@@ -5,55 +5,164 @@
 ==============================================
 
 --- GRAPHICS / VIDEO SETTINGS ---
+  (Stored in local\ and NOT synced by the Steam Cloud: unlike your
+   crosshair and keybinds, these do not follow you to another PC.)
 
   Resolution - width                   : 1920
   Resolution - height                  : 1080
   Refresh rate (num.)                  : 240
   Refresh rate (den.)                  : 1
   Fullscreen                           : Enabled
+  Fullscreen (coop)                    : Disabled
+  Borderless window                    : Disabled
+  Minimize on focus loss               : Enabled
+  High-DPI scaling                     : Disabled
+  Monitor index                        : 0
   Aspect ratio                         : Widescreen (16:9)
   Vertical sync (VSync)                : Disabled
   Global GPU detail                    : High
-  Shadow quality                       : Low
-  Texture detail                       : Medium
-  Shader detail                        : Low
-  Anti-aliasing (MSAA)                 : High
+  Effect detail (CPU)                  : High
+  Texture detail (GPU mem)             : High
+  Shader detail                        : Medium
+  Anti-aliasing (MSAA)                 : 4x MSAA
+  Anti-aliasing (CMAA2)                : Disabled
+  Texture filtering                    : Anisotropic 4x
+  NVIDIA Reflex low latency            : Enabled
+  Shadow quality (raw)                 : 2
+  Dynamic shadows (raw)                : 1
+  Model/texture detail (raw)           : 2
+  Particle detail (raw)                : 2
+  Ambient occlusion (raw)              : 1
+  High dynamic range (raw)             : -1
+  FidelityFX super res (raw)           : 0
+  GPU recognised by CS2                : Enabled
+  >> Refresh rate (computed)           : 240.00 Hz
 
---- GAME SETTINGS (91 convars) ---
+  Note: "(raw)" values are CS2 internal detail levels (higher = better,
+        -1 = not set). They are shown unlabelled on purpose.
 
-  (Every convar is listed, grouped by category. "# ..." is a friendly hint.)
+--- GAME SETTINGS (74 convars) ---
+  (Synced by the Steam Cloud: these come back on their own when you
+   log into another PC.)
 
   [ Aim / Mouse ]
-  m_pitch                                  : 0.022000   # Vertical sensitivity
-  m_yaw                                    : 0.022000   # Horizontal sensitivity
-  sensitivity                              : 0.850000   # Mouse sensitivity
-  zoom_sensitivity_ratio                   : 1.000000   # Zoom sensitivity ratio
+  m_pitch                                  : 0.022   # Vertical sensitivity
+  m_yaw                                    : 0.022   # Horizontal sensitivity
+  sensitivity                              : 2.1   # Mouse sensitivity
+  sensitivity_y_scale                      : 1   # Vertical sensitivity scale
+  zoom_sensitivity_ratio                   : 1   # Zoom sensitivity ratio
 
   [ Crosshair ]
-  cl_crosshaircolor                        : 5   # Crosshair color (index)
-  cl_crosshairgap                          : -2.000000   # Crosshair gap
-  cl_crosshairsize                         : 2.000000   # Crosshair size
-  cl_crosshairstyle                        : 4   # Crosshair style
-  cl_crosshairthickness                    : 1.000000   # Crosshair thickness
+  cl_crosshair_drawoutline                 : true   # Crosshair outline
+  cl_crosshair_dynamic_maxdist_splitratio  : 0.35
+  cl_crosshair_dynamic_splitalpha_innermod : 1
+  cl_crosshair_dynamic_splitalpha_outermod : 0.5
+  cl_crosshair_dynamic_splitdist           : 7
+  cl_crosshair_outlinethickness            : 1
+  cl_crosshair_recoil                      : false
+  cl_crosshair_sniper_width                : 1
+  cl_crosshair_t                           : false
+  cl_crosshairalpha                        : 200   # Crosshair opacity
+  cl_crosshaircolor                        : 1   # Crosshair color (index)
+  cl_crosshaircolor_b                      : 0
+  cl_crosshaircolor_g                      : 255
+  cl_crosshaircolor_r                      : 0
+  cl_crosshairdot                          : false   # Crosshair center dot
+  cl_crosshairgap                          : -1   # Crosshair gap
+  cl_crosshairgap_useweaponvalue           : false
+  cl_crosshairsize                         : 2.5   # Crosshair size
+  cl_crosshairstyle                        : 2   # Crosshair style
+  cl_crosshairthickness                    : 0.5   # Crosshair thickness
+  cl_crosshairusealpha                     : true
+  cl_fixedcrosshairgap                     : 3
   crosshair                                : true   # Crosshair shown
 
+  [ Grenade crosshair ]
+  cl_grenadecrosshair_decoy                : true
+  cl_grenadecrosshair_explosive            : true
+  cl_grenadecrosshair_fire                 : true
+  cl_grenadecrosshair_flash                : true
+  cl_grenadecrosshair_keepusercrosshair    : true
+  cl_grenadecrosshair_smoke                : true
+  cl_grenadecrosshairdelay_explosive       : 2
+  cl_grenadecrosshairdelay_flash           : 2
+
   [ Viewmodel / Weapon ]
-  viewmodel_fov                            : 68.000000   # Weapon FOV
-  viewmodel_offset_x                       : 2.500000   # Weapon position X
+  cl_debounce_zoom                         : false
+  cl_prefer_lefthanded                     : false   # Left-handed weapon
+  cl_showloadout                           : true
+  cl_silencer_mode                         : 0
+  cl_sniper_auto_rezoom                    : true
+  viewmodel_fov                            : 60   # Weapon FOV
+  viewmodel_offset_x                       : 1   # Weapon position X
+  viewmodel_offset_y                       : 1   # Weapon position Y
+  viewmodel_offset_z                       : -1   # Weapon position Z
+
+  [ HUD / Radar ]
+  cl_hud_color                             : 4
+  cl_radar_always_centered                 : false   # Radar always centered
+  cl_radar_scale                           : 0.4   # Radar scale
+  cl_radar_square_with_scoreboard          : true
+  cl_teamid_overhead_mode                  : 2
+  hud_scaling                              : 0.85
+  hud_showtargetid                         : true
+  safezonex                                : 1
+  safezoney                                : 1
+
+  [ Buy menu ]
+  cl_buymenu_ct_nextround_high             : 5000
+  cl_buymenu_ct_nextround_low              : 1400
+  cl_buymenu_t_nextround_high              : 5000
+  cl_buymenu_t_nextround_low               : 1400
+  cl_buywheel_nonumberpurchasing           : false
+  cl_inventory_radial_immediate_select     : true
+  cl_use_opens_buy_menu                    : false
+
+  [ Audio ]
+  snd_mixahead                             : 0.025
+  snd_music_volume                         : 0
+  voice_scale                              : 0.7   # Voice chat volume
+  volume                                   : 0.5   # Master volume
+
+  [ Movement ]
+  option_duck_method                       : false
+  option_speed_method                      : false
+
+  [ Controller / Joystick ]
+  joy_axisx_deadzone                       : 0.15
+  joy_axisy_deadzone                       : 0.15
+  joy_forward_sensitivity                  : 1
+  joy_movement_stick                       : false
+  joy_yaw_sensitivity                      : 3
 
   [ Other ]
   con_enable                               : true
-  ... (Grenade crosshair, HUD / Radar, Buy menu, Audio, Movement,
-       Controller / Joystick categories also appear when present) ...
+  fps_max                                  : 400   # FPS limit
 
---- KEYBINDS (19 keys) ---
+--- KEYBINDS (23 keys) ---
   (CS2 only stores custom/changed bindings here; defaults are not listed.)
+  (Synced by the Steam Cloud, like the game settings above.)
 
   w            -> +forward
-  s            -> +back
   a            -> +left
+  s            -> +back
   d            -> +right
-  q            -> (unbound)
-  CTRL         -> +duck
   SPACE        -> +jump
+  CTRL         -> +duck
+  SHIFT        -> +sprint
+  q            -> lastinv
+  e            -> +use
+  r            -> +reload
+  g            -> drop
+  b            -> buymenu
+  TAB          -> +score
   MOUSE1       -> +attack
+  MOUSE2       -> +attack2
+  MOUSE3       -> player_ping
+  `            -> toggleconsole
+  1            -> slot1
+  2            -> slot2
+  3            -> slot3
+  4            -> slot4
+  5            -> slot5
+  f            -> (unbound)

@@ -55,13 +55,17 @@ CS2 only writes its video settings file (`cs2_video.txt`) **after** you open
 game, do that first, otherwise the "graphics" section of the summary will be empty
 (everything else — game settings, crosshair, keybinds — still works).
 
+CS2 renamed most of the old CSGO video keys. Detail levels (`videocfg_*`) are
+reported as **raw numbers** on purpose — their scale differs per setting, and
+inventing labels would misreport your config. Higher = better, `-1` = not set.
+
 ## What gets exported
 
-| File                       | Contents                                              |
-|----------------------------|-------------------------------------------------------|
-| `cs2_video.txt`            | Graphics / video settings (resolution, shadows, etc.) |
-| `cs2_user_convars*.vcfg`   | Game settings (crosshair, sensitivity, viewmodel…)    |
-| `cs2_user_keys*.vcfg`      | Keybinds                                              |
+| File                       | Contents                                              | Cloud-synced? |
+|----------------------------|-------------------------------------------------------|---------------|
+| `cs2_video.txt`            | Graphics / video settings (resolution, shadows, etc.) | ❌ no          |
+| `cs2_user_convars*.vcfg`   | Game settings (crosshair, sensitivity, viewmodel…)    | ✅ yes         |
+| `cs2_user_keys*.vcfg`      | Keybinds                                              | ✅ yes         |
 
 Output structure:
 
@@ -74,21 +78,83 @@ CS2_Config_Export/
         └── location_and_reimport.txt  ← where + how to re-import
 ```
 
+## `local\` vs `remote\` — why this backup is worth having
+
+Inside `730\`, CS2 splits your config in two, and the halves don't hold the same
+things:
+
+| | `local\` | `remote\` |
+|---|---|---|
+| Scope | **this PC only**, never uploaded | **synced by the Steam Cloud** to every PC you log into |
+| Holds | `cs2_video.txt`, machine convars, `trustedlaunch.cfg` | game settings, keybinds, mute list, inventory files |
+
+The game settings and keybinds exist on **both** sides —
+`local\cfg\cs2_user_convars_0_slot0.vcfg` and `remote\cs2_user_convars.vcfg`.
+They hold exactly the same settings; only the line endings differ (`local` uses
+Windows CRLF, `remote` uses LF so the Cloud can sync to Linux and macOS). The
+script reads the `local` copy and falls back to the Cloud one if that's all
+a PC has. `remotecache.vdf` is the Cloud's index of `remote\`, and
+`*_lastclouded` files are snapshots of the last upload Steam diffs against.
+
+**What this means:** on a new PC your crosshair, sensitivity and binds come back
+**by themselves** through the Cloud. Your **graphics settings don't** — they live
+in `local\` and are never synced. That's the part this backup actually saves.
+
 ## Re-importing your config
 
-1. Fully close **CS2 and Steam**.
-2. *(Recommended)* Disable **Steam Cloud** for CS2 (Properties > General), otherwise the Cloud may overwrite your restored files.
-3. Copy the **contents** of `raw_config_for_reimport/` into:
-   `...\Steam\userdata\<YOUR_ID>\730\`
+1. Fully close **CS2 and Steam**. Steam flushes pending Cloud uploads as it
+   exits, so copying while it runs can get your files overwritten.
+2. **Disable Steam Cloud** for CS2 — *(Properties > General)*. This is the step
+   that makes the rest stick: without it, Steam re-downloads its own copy of
+   `remote\` on the next launch and silently reverts your restored game settings
+   and keybinds. Files in `local\` (video settings included) are never touched by
+   the Cloud and restore fine either way.
+3. Copy the **contents** of `raw_config_for_reimport/` into
+   `...\Steam\userdata\<YOUR_ID>\730\`, keeping the `local\` and `remote\`
+   subfolders as they are. `<YOUR_ID>` is the folder in `...\Steam\userdata\` on
+   the **target** PC — it differs per account, don't reuse the one from the export.
 4. Accept overwriting the existing files.
-5. Restart Steam then CS2.
+5. Restart Steam, then CS2, and check your settings in-game.
+6. **Only after** CS2 has run once with the restored config, re-enable Steam
+   Cloud if you want it back. In that order the Cloud uploads *your* files
+   instead of overwriting them.
 
 ## Privacy
 
-- CS2 config files contain your **Steam name**. The raw exported copy keeps it (for a faithful re-import) — so **don't share your export as-is**.
-- The `readable_settings.txt` summary **never** shows your Steam name.
-- Use the **`-Anonymize`** option to strip your name from the exported copy if you want to share it.
-- The included `.gitignore` prevents accidentally committing an export into this repo.
+A default export is a **personal** backup and contains more than your settings:
+
+| Data | Where |
+|------|-------|
+| Your Steam name | `name` convar |
+| Your Steam account ID | the export **folder name** + paths (converts to a SteamID64) |
+| **SteamID64 of every player you muted** | `voice_ban.dt` — *other people's* data |
+| Unique inventory item IDs | `cs2_preferred_items.txt`, loadout files |
+| This machine's hardware fingerprint | `trustedlaunch.cfg` |
+
+So: **never publish a default export.** The `readable_settings.txt` summary alone
+never shows your Steam name.
+
+Use **`-Anonymize`** when you intend to publish (GitHub, Discord, a forum). It:
+
+- names the folder `account_1` and replaces the account ID with `<ACCOUNT_ID>`,
+  in the printed paths **and inside the exported files**;
+- **deletes** `voice_ban.dt`, the inventory files, `trustedlaunch.cfg`, Steam
+  sync caches, stale `*_lastclouded` duplicates, and every `.dt` blob (binary
+  Steam caches: none of them hold settings, and none can be scrubbed reliably);
+- blanks identifying convars (`name`, passwords, `cl_clanid`…) in every text file;
+- scrubs any leftover SteamID64 / account id;
+- then **re-reads every file of the finished export** — whatever its extension —
+  and refuses to call it clean if an identifier is still there:
+
+```
+Verifying the anonymized export...
+  [OK] No Steam ID found in the export - safe to publish.
+```
+
+Your graphics, game settings and keybinds are untouched, so an anonymized export
+still re-imports correctly.
+
+The included `.gitignore` also prevents accidentally committing an export into this repo.
 
 ## License
 

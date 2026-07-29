@@ -1,0 +1,14 @@
+# Make line endings deterministic, whatever each contributor's core.autocrlf is.
+* text=auto
+
+# Windows-only PowerShell, and the .txt reports the script generates: ship CRLF
+# so they open cleanly in Notepad - including inside a "Download ZIP" archive,
+# which is how the README tells people to grab the script.
+*.ps1 text eol=crlf
+*.txt text eol=crlf
+
+# Plain LF for the docs.
+*.md text eol=lf
+
+# Steam's .dt blobs really are binary, in case one ever lands here.
+*.dt binary
