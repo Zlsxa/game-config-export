@@ -29,6 +29,12 @@
 .PARAMETER ApexPath
     Optional: force the "Saved Games\Respawn\Apex" folder if auto-detection fails.
 
+.PARAMETER Launcher
+    Which launcher Apex is installed from: steam or ea (EA App / Origin).
+    Omit it and the script asks at startup. It only changes the cloud-save
+    instructions in the generated re-import guide - the config itself is written
+    to the same folder either way.
+
 .PARAMETER Anonymize
     Strips identifying info (player name, Steam account id, Windows user name)
     from the raw exported copy too. Use this to SHARE the config publicly.
@@ -49,6 +55,8 @@
 param(
     [string]$OutputRoot = (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Apex_Config_Export'),
     [string]$ApexPath,
+    [ValidateSet('steam', 'ea')]
+    [string]$Launcher,
     [switch]$Anonymize
 )
 
@@ -134,6 +142,64 @@ $ApexCvarCategories = @(
     @{ Name = 'Spectator';   Pattern = '^sv_spec' }
 )
 
+# Guess which launcher Apex came from, to preselect an answer in the prompt.
+# Only Apex-specific evidence counts. Whether Steam or the EA App is installed
+# on the PC says nothing: plenty of people run Steam for other games and Apex
+# from the EA App.
+#   steam_autocloud.vdf  -> Steam synced THIS config at some point
+#   appmanifest_1172470  -> Apex is installed through Steam right now
+# Neither proves the current launcher on its own (a leftover .vdf survives a
+# Steam uninstall), which is why this only ever suggests a default and the user
+# has the final say.
+function Get-LauncherGuess {
+    param([string]$ApexRoot)
+    if (Test-Path (Join-Path $ApexRoot 'profile\steam_autocloud.vdf')) {
+        return @{ Value = 'steam'; Why = 'profile\steam_autocloud.vdf found' }
+    }
+    $libs = @()
+    $steam = Get-SteamPath
+    if ($steam) {
+        $libs += (Join-Path $steam 'steamapps')
+        $lf = Join-Path $steam 'steamapps\libraryfolders.vdf'
+        if (Test-Path $lf) {
+            foreach ($m in [regex]::Matches((Get-Content $lf -Raw), '"path"\s+"([^"]+)"')) {
+                $libs += (Join-Path ($m.Groups[1].Value -replace '\\\\', '\') 'steamapps')
+            }
+        }
+    }
+    foreach ($l in ($libs | Sort-Object -Unique)) {
+        if (Test-Path (Join-Path $l 'appmanifest_1172470.acf')) {
+            return @{ Value = 'steam'; Why = 'Apex found in a Steam library' }
+        }
+    }
+    return @{ Value = 'ea'; Why = 'no Steam trace found for Apex' }
+}
+
+# Ask which launcher the game comes from. The answer only tailors the cloud-save
+# step of the re-import guide - that step is wrong for half the users otherwise,
+# since the EA App has no "Steam Cloud" checkbox.
+function Read-Launcher {
+    param([string]$Default, [string]$Why)
+    Write-Host ""
+    Write-Host "Which launcher is Apex Legends installed from?" -ForegroundColor Cyan
+    Write-Host "  [1] Steam"
+    Write-Host "  [2] EA App (Origin)"
+    Write-Host ("  Detected: {0}  ({1})" -f $(if ($Default -eq 'steam') { 'Steam' } else { 'EA App' }), $Why) -ForegroundColor DarkGray
+    # No console to answer on (scheduled task, piped input): keep the detected
+    # value rather than blocking forever on Read-Host.
+    if ($Host.Name -ne 'ConsoleHost' -or [Console]::IsInputRedirected) {
+        Write-Host "  (no interactive console - using the detected value)" -ForegroundColor DarkGray
+        return $Default
+    }
+    while ($true) {
+        $answer = Read-Host ("  Choice [1/2, Enter = detected]")
+        if (-not $answer)              { return $Default }
+        if ($answer -in '1', 'steam')  { return 'steam' }
+        if ($answer -in '2', 'ea', 'origin') { return 'ea' }
+        Write-Host "  Please type 1 or 2." -ForegroundColor Yellow
+    }
+}
+
 # Apex keeps its config in the "Saved Games" known folder, which users can
 # relocate (to another drive, or to OneDrive). Ask the shell where it actually
 # is before falling back to the default location under the profile.
@@ -169,6 +235,13 @@ if ($found.Count -eq 0) {
     Stop-WithError "No Apex config files under $apex" 'Launch Apex at least once to generate them.'
 }
 Write-Host "Apex Legends found: $apex" -ForegroundColor Green
+
+if (-not $Launcher) {
+    $guess    = Get-LauncherGuess -ApexRoot $apex
+    $Launcher = Read-Launcher -Default $guess.Value -Why $guess.Why
+}
+$isSteam = $Launcher -eq 'steam'
+Write-Host ("Launcher: {0}" -f $(if ($isSteam) { 'Steam' } else { 'EA App (Origin)' })) -ForegroundColor Green
 
 $video   = $(if (Test-Path (Join-Path $apex 'local\videoconfig.txt')) { Join-Path $apex 'local\videoconfig.txt' })
 $binds   = $(if (Test-Path (Join-Path $apex 'local\settings.cfg'))    { Join-Path $apex 'local\settings.cfg' })
@@ -325,12 +398,15 @@ Apex splits its config the same way CS2 does, under different names:
 
   local\    THIS PC only - never uploaded. Holds videoconfig.txt (all your
             graphics settings) and settings.cfg (keybinds + input/audio cvars).
-  profile\  Synced by the Steam Cloud. Holds profile.cfg (gameplay, HUD and
-            accessibility settings) and steam_autocloud.vdf, a small marker
-            file carrying your Steam account id.
+  profile\  Synced to the cloud by your launcher. Holds profile.cfg (gameplay,
+            HUD and accessibility settings)$(if ($isSteam) { ", and steam_autocloud.vdf,
+            a small marker file carrying your Steam account id" }).
 
 So your GRAPHICS settings and your KEYBINDS do NOT follow you to another PC -
 they sit in local\. That is the part this backup really saves for you.
+
+Note: this config folder is the same whatever launcher you use - the launcher
+      decides where the GAME is installed, not where it saves your settings.
 
 Not copied on purpose:
   local\psoCache.pso   compiled shader cache, ~230 MB, rebuilt by the game
@@ -341,15 +417,30 @@ Copying those back would be pointless and would turn a 12 KB config into a
 ----------------------------------------------
 HOW TO RE-IMPORT THIS CONFIG (this PC or another):
 ----------------------------------------------
-  1. Fully close Apex Legends AND Steam. Steam flushes pending Cloud uploads
-     as it exits, so copying while it runs can get your files overwritten.
+  1. Fully close Apex Legends AND $(if ($isSteam) { 'Steam' } else { 'the EA App' }). The launcher flushes pending
+     cloud uploads as it exits, so copying while it runs can get your files
+     overwritten.
 
+$(if ($isSteam) {
+@'
   2. Disable Steam Cloud for Apex before copying:
        Steam > right-click Apex Legends > Properties > General > uncheck
        Steam Cloud
      Without it, Steam re-downloads its own profile\ on the next launch and
      reverts the settings you just restored. Files in local\ (graphics and
      keybinds) are never touched by the Cloud and restore fine either way.
+'@
+} else {
+@'
+  2. Disable cloud saves for Apex in the EA App before copying:
+       EA App > Settings > Application > turn off "Cloud saves"
+     (The EA App moves its settings around between versions - if that path
+     does not match, look for "Cloud saves" anywhere in its settings.)
+     Without it the EA App re-downloads its own profile\ on the next launch
+     and reverts the settings you just restored. Files in local\ (graphics and
+     keybinds) are not cloud-synced and restore fine either way.
+'@
+})
 
   3. Copy the CONTENTS of "raw_config_for_reimport\" into:
        %USERPROFILE%\Saved Games\Respawn\Apex\
@@ -358,10 +449,10 @@ HOW TO RE-IMPORT THIS CONFIG (this PC or another):
 
   4. Accept overwriting the existing files.
 
-  5. Restart Steam, then Apex, and check your settings in-game.
+  5. Restart $(if ($isSteam) { 'Steam' } else { 'the EA App' }), then Apex, and check your settings in-game.
 
-  6. Only once Apex has run with the restored config, re-enable Steam Cloud if
-     you want it back. In that order the Cloud uploads YOUR files instead of
+  6. Only once Apex has run with the restored config, re-enable cloud saves if
+     you want them back. In that order the cloud uploads YOUR files instead of
      overwriting them.
 
 Note: the first launch after restoring rebuilds the shader cache, so expect
@@ -373,8 +464,8 @@ if ($Anonymize) {
 
 
 ANONYMIZED EXPORT: this copy was stripped for public sharing.
-  - The player name in settings.cfg was blanked, and the Steam account id in
-    profile\steam_autocloud.vdf was zeroed.
+  - The player name in settings.cfg was blanked$(if (Test-Path (Join-Path $apex 'profile\steam_autocloud.vdf')) { ", and the Steam account id
+    in profile\steam_autocloud.vdf was zeroed" }).
   - The Windows user name was replaced with <USER> in the paths above.
   Your graphics, gameplay settings and keybinds are untouched, so this export
   still restores correctly - only the identifying values are gone.

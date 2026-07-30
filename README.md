@@ -70,6 +70,10 @@ When it finishes, the export folder opens automatically (default: your **Desktop
 .\cs2\Export-CS2Config.ps1  -SteamPath "D:\Games\Steam"
 .\apex\Export-ApexConfig.ps1 -ApexPath "D:\Saved Games\Respawn\Apex"
 
+# Skip the "which launcher?" question (Apex)
+.\apex\Export-ApexConfig.ps1 -Launcher steam
+.\apex\Export-ApexConfig.ps1 -Launcher ea
+
 # Remove identifying values from the copy (to SHARE your config publicly)
 .\cs2\Export-CS2Config.ps1   -Anonymize
 .\apex\Export-ApexConfig.ps1 -Anonymize
@@ -150,6 +154,20 @@ Apex splits things the same way, under different names:
 
 So for Apex **both your graphics settings and your keybinds** stay on the PC —
 even more reason to keep a backup than for CS2, where at least the binds follow you.
+
+### Steam or EA App?
+
+The Apex script asks at startup which launcher the game comes from, and
+preselects an answer from Apex-specific evidence (`steam_autocloud.vdf` in the
+config, an Apex entry in a Steam library). Press Enter to accept it, or use
+`-Launcher steam|ea` to skip the question entirely.
+
+It only changes the **cloud-save step** of the generated re-import guide — the
+EA App has no "Steam Cloud" checkbox, so those instructions would be wrong for
+half the users. **The config path is identical either way**: the launcher decides
+where the *game* is installed, not where it saves your settings. Having both
+launchers installed on the PC changes nothing, which is why the script never
+looks at that — plenty of people run Steam for other games and Apex from the EA App.
 
 ## Re-importing your config
 
