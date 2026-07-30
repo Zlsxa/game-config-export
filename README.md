@@ -35,6 +35,44 @@ actually hurt, and a per-game copy is how one of them silently rots.
 - Windows
 - The game launched **at least once**, so its config files exist
 
+## Where the scripts look
+
+They target the **default install locations**, with a couple of fallbacks and an
+explicit override each. Nothing is hardcoded to a drive letter, but a truly
+custom layout needs the override.
+
+**CS2** — Steam is located in this order:
+
+1. `HKCU\Software\Valve\Steam` → `SteamPath` *(where Steam records its own path)*
+2. `HKLM\SOFTWARE\WOW6432Node\Valve\Steam` → `InstallPath`
+3. `C:\Program Files (x86)\Steam`, `C:\Program Files\Steam`, `C:\Steam`
+
+The config is read from `<Steam>\userdata\<account>\730\`. A Steam installed
+anywhere is found through the registry; override with `-SteamPath`.
+
+**Apex** — the config sits in the *Saved Games* known folder:
+
+1. `HKCU\...\Explorer\User Shell Folders` → the `Saved Games` entry. Windows only
+   writes that entry when the folder has been *moved* (another drive, OneDrive),
+   so on a default setup it is simply absent and step 2 applies.
+2. `%USERPROFILE%\Saved Games`
+
+then `\Respawn\Apex\`. Override with `-ApexPath`.
+
+The **game's own install folder is irrelevant** for Apex — whether it sits in
+`C:\Program Files\EA Games\` (the EA App default), a Steam library or anywhere
+else, the settings are always written to the same place. The script only reads
+Steam libraries (via `libraryfolders.vdf`, so non-default library folders count)
+to *suggest* an answer to the launcher question, never to find the config.
+
+If auto-detection fails, both scripts stop with the reason and print the exact
+override to use, rather than failing silently or exporting nothing:
+
+```
+[ERROR] Apex Legends config folder not found.
+        Pass it explicitly: .\Export-ApexConfig.ps1 -ApexPath "...\Saved Games\Respawn\Apex"
+```
+
 ## Install
 
 **Download the whole repository** — *Code > Download ZIP*, or:
