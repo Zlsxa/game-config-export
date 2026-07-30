@@ -23,7 +23,8 @@
   Sun shadow coverage on               : Disabled
   Sun shadow resolution                : 512
   Spot shadow count                    : 2
-  Ambient occlusion quality            : 1
+  Ambient occlusion (SSAO)             : Disabled
+  Depth of field                       : Disabled
   Volumetric lighting                  : Disabled
   Volumetric fog                       : Disabled
   Model detail                         : 1
@@ -37,15 +38,16 @@
   Note: "(raw)" values are internal detail levels whose scale differs per
         setting. They are shown unlabelled on purpose rather than guessed.
 
---- GAME SETTINGS (30 settings) ---
+--- GAME SETTINGS (31 settings) ---
   (profile\profile.cfg is synced by the Steam Cloud; the settings that
    live in local\settings.cfg are not.)
+  (Field of view: cl_fovScale 1.20000000 = 84 degrees in-game.)
 
   [ Aim / Mouse ]
   mouse_sensitivity                        : 3.5   # Mouse sensitivity
   m_acceleration                           : 0   # Mouse acceleration
   mouse_use_per_scope_sensitivity_scalars  : 1   # Per-scope sensitivity
-  mouse_zoomed_sensitivity_scalar_0        : 1.0
+  mouse_zoomed_sensitivity_scalar_0        : 1.0   # ADS sensitivity multiplier (1x)
   mouse_zoomed_sensitivity_scalar_1        : 1.0
 
   [ Video / HUD ]
@@ -78,6 +80,7 @@
   ui_layout_mode                           : 0
 
   [ Other ]
+  fps_max                                  : 180   # FPS limit (0 = unlimited)
   lookstrafe                               : 0   # Look-strafe
   lookspring                               : 0   # Look-spring
 

@@ -102,6 +102,8 @@ $ApexVideoMap = [ordered]@{
     'setting.csm_cascade_res'     = @{ Label = 'Sun shadow resolution';     Type = 'raw' }
     'setting.shadow_maxdynamic'   = @{ Label = 'Spot shadow count';         Type = 'raw' }
     'setting.ssao_quality'        = @{ Label = 'Ambient occlusion quality'; Type = 'raw' }
+    'setting.ssao_enabled'        = @{ Label = 'Ambient occlusion (SSAO)';  Type = 'bool' }
+    'setting.mat_depthfeather_enable' = @{ Label = 'Depth of field';        Type = 'bool' }
     'setting.volumetric_lighting' = @{ Label = 'Volumetric lighting';       Type = 'bool' }
     'setting.volumetric_fog'      = @{ Label = 'Volumetric fog';            Type = 'bool' }
     'setting.map_detail_level'    = @{ Label = 'Model detail';              Type = 'raw' }
@@ -121,6 +123,8 @@ $ApexCvarLabels = @{
     'mouse_sensitivity'                       = 'Mouse sensitivity'
     'm_acceleration'                          = 'Mouse acceleration'
     'mouse_use_per_scope_sensitivity_scalars' = 'Per-scope sensitivity'
+    'mouse_zoomed_sensitivity_scalar_0'       = 'ADS sensitivity multiplier (1x)'
+    'fps_max'                                 = 'FPS limit (0 = unlimited)'
     'cl_fovScale'                             = 'Field of view scale'
     'cl_safearea'                             = 'HUD safe area'
     'sound_volume_voice'                      = 'Voice chat volume'
@@ -338,6 +342,20 @@ if ($cv.Count -gt 0) {
     [void]$h.AppendLine("--- GAME SETTINGS ($shown settings) ---")
     [void]$h.AppendLine('  (profile\profile.cfg is synced by the Steam Cloud; the settings that')
     [void]$h.AppendLine('   live in local\settings.cfg are not.)')
+    # Apex stores the FOV as a scale, not degrees: the in-game slider value is
+    # 70 x cl_fovScale. Printing the raw 1.20000000 alone tells you nothing,
+    # the same reason the CS2 summary computes the refresh rate from its fraction.
+    if ($cv['cl_fovScale']) {
+        $fovOk = $true
+        try { $fovVal = [double]::Parse($cv['cl_fovScale'], [cultureinfo]::InvariantCulture) }
+        catch { $fovOk = $false }
+        if ($fovOk) {
+            # Invariant culture: a locale-dependent decimal comma would read as a typo
+            # in a summary meant to be shared.
+            $fovDeg = [string]::Format([cultureinfo]::InvariantCulture, '{0:N0}', ($fovVal * 70))
+            [void]$h.AppendLine("  (Field of view: cl_fovScale $($cv['cl_fovScale']) = $fovDeg degrees in-game.)")
+        }
+    }
     [void]$h.AppendLine('')
     foreach ($catName in $buckets.Keys) {
         $keys = $buckets[$catName]
@@ -454,6 +472,15 @@ $(if ($isSteam) {
   6. Only once Apex has run with the restored config, re-enable cloud saves if
      you want them back. In that order the cloud uploads YOUR files instead of
      overwriting them.
+
+  7. Check your GRAPHICS settings specifically. Apex rewrites
+     local\videoconfig.txt every time it starts, so it can overwrite the
+     values you just restored - the game trusts its own idea of your hardware
+     over the file on disk.
+     If they keep reverting, set the file read-only after restoring it:
+       right-click local\videoconfig.txt > Properties > tick "Read-only"
+     Apex then keeps your values. Untick it before changing settings from the
+     in-game menu again, otherwise the game cannot save them.
 
 Note: the first launch after restoring rebuilds the shader cache, so expect
       one slower startup and some early stutter. That is normal.

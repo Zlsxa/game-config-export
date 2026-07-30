@@ -60,6 +60,15 @@ HOW TO RE-IMPORT THIS CONFIG (this PC or another):
      you want them back. In that order the cloud uploads YOUR files instead of
      overwriting them.
 
+  7. Check your GRAPHICS settings specifically. Apex rewrites
+     local\videoconfig.txt every time it starts, so it can overwrite the
+     values you just restored - the game trusts its own idea of your hardware
+     over the file on disk.
+     If they keep reverting, set the file read-only after restoring it:
+       right-click local\videoconfig.txt > Properties > tick "Read-only"
+     Apex then keeps your values. Untick it before changing settings from the
+     in-game menu again, otherwise the game cannot save them.
+
 Note: the first launch after restoring rebuilds the shader cache, so expect
       one slower startup and some early stutter. That is normal.
 
