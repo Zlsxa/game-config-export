@@ -1,5 +1,7 @@
 # --- Exports produced by the script (may contain personal data) ---
+Game_Config_Export/
 CS2_Config_Export/
+Game_Backup_*/
 CS2_Backup_*/
 *_Backup_*/
 
@@ -9,6 +11,13 @@ cs2_user_convars*.vcfg
 cs2_user_keys*.vcfg
 *.vcfg
 !examples/**/*.vcfg
+
+# --- Raw Apex Legends config files, same reason ---
+videoconfig.txt
+settings.cfg
+profile.cfg
+steam_autocloud.vdf
+psoCache.pso
 
 # --- Local tool / editor settings ---
 .vs/

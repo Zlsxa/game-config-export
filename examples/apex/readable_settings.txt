@@ -1,0 +1,110 @@
+==============================================
+  APEX LEGENDS CONFIGURATION - READABLE SUMMARY
+  Exported on: 2026-01-01 12:00
+  (Identifying values are omitted - safe to share.)
+==============================================
+
+--- GRAPHICS / VIDEO SETTINGS ---
+  (Stored in local\videoconfig.txt, which the Steam Cloud does NOT sync:
+   these do not follow you to another PC.)
+
+  Resolution - width                   : 2560
+  Resolution - height                  : 1440
+  Display width                        : 2560
+  Display height                       : 1440
+  Fullscreen                           : Enabled
+  Borderless window                    : Disabled
+  Vertical sync (VSync)                : Disabled
+  Anti-aliasing (raw)                  : 4
+  Anisotropic filtering                : 4x
+  Texture streaming budget             : 1
+  Texture streaming memory             : 3000000
+  Shadows enabled                      : Enabled
+  Sun shadow coverage on               : Disabled
+  Sun shadow resolution                : 512
+  Spot shadow count                    : 2
+  Ambient occlusion quality            : 1
+  Volumetric lighting                  : Disabled
+  Volumetric fog                       : Disabled
+  Model detail                         : 1
+  Effects detail                       : 0
+  Ragdoll count                        : 0
+  Adaptive resolution (DVS)            : Disabled
+  Brightness (gamma)                   : 1.100000
+  Master volume                        : 0.700000
+  Video config version                 : 10
+
+  Note: "(raw)" values are internal detail levels whose scale differs per
+        setting. They are shown unlabelled on purpose rather than guessed.
+
+--- GAME SETTINGS (30 settings) ---
+  (profile\profile.cfg is synced by the Steam Cloud; the settings that
+   live in local\settings.cfg are not.)
+
+  [ Aim / Mouse ]
+  mouse_sensitivity                        : 3.5   # Mouse sensitivity
+  m_acceleration                           : 0   # Mouse acceleration
+  mouse_use_per_scope_sensitivity_scalars  : 1   # Per-scope sensitivity
+  mouse_zoomed_sensitivity_scalar_0        : 1.0
+  mouse_zoomed_sensitivity_scalar_1        : 1.0
+
+  [ Video / HUD ]
+  cc_text_size                             : 0
+  cl_fovScale                              : 1.20000000   # Field of view scale
+  cl_safearea                              : 0   # HUD safe area
+  closecaption                             : 0
+  colorblind_mode                          : 2   # Colourblind mode
+  damage_indicator_style_pilot             : 1   # Damage indicator style
+  hud_setting_compactOverHeadNames         : 1
+  hud_setting_showTeamNamesOnMap           : 1
+  gfx_nvnUseLowLatency                     : 1
+  gfx_nvnUseLowLatencyBoost                : 0
+  chroma_enable                            : 0
+  cc_linger_time                           : 1.0
+
+  [ Audio ]
+  sound_volume_voice                       : 0.6   # Voice chat volume
+  sound_num_speakers                       : 2
+  voice_scale                              : 0.8   # Voice volume
+  VoiceChatMode                            : 1   # Voice chat mode
+  voice_vox                                : 0
+
+  [ Gameplay ]
+  cl_deathhints_enabled                    : 1
+  CrossPlay_user_optin                     : 1   # Crossplay enabled
+  first_time_player_state                  : 0
+  menu_was_multiplayer_played_last         : 1
+  mp_player_level                          : 0
+  ui_layout_mode                           : 0
+
+  [ Other ]
+  lookstrafe                               : 0   # Look-strafe
+  lookspring                               : 0   # Look-spring
+
+--- KEYBINDS (23 binds) ---
+  (Keyboard layout(s) in the file: US_standard)
+  (Stored in local\settings.cfg - NOT synced by the Steam Cloud.)
+
+  w                -> +forward
+  a                -> +left
+  s                -> +back
+  d                -> +right
+  SPACE            -> +jump
+  CTRL             -> +duck
+  SHIFT            -> +speed
+  q                -> +offhand1
+  e                -> +use
+  r                -> +reload
+  v                -> +melee
+  1                -> weaponSelectPrimary0
+  2                -> weaponSelectPrimary1
+  3                -> weaponSelectPrimary2
+  5                -> use_consumable HEALTH_SMALL
+  6                -> use_consumable HEALTH_LARGE
+  7                -> use_consumable SHIELD_SMALL
+  8                -> use_consumable SHIELD_LARGE
+  TAB              -> +scriptCommand1
+  MOUSE1           -> +attack
+  MOUSE2           -> toggle_zoom
+  4                -> +scriptCommand2   [held]
+  MOUSE2           -> +zoom   [held]

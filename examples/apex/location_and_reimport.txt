@@ -1,0 +1,67 @@
+==============================================
+  APEX LEGENDS CONFIG LOCATION & RE-IMPORT
+==============================================
+
+ORIGINAL LOCATION:
+  C:\Users\<USER>\Saved Games\Respawn\Apex
+
+Settings files detected:
+  - C:\Users\<USER>\Saved Games\Respawn\Apex\local\videoconfig.txt   (graphics / video)
+  - C:\Users\<USER>\Saved Games\Respawn\Apex\local\settings.cfg   (keybinds + input/audio)
+  - C:\Users\<USER>\Saved Games\Respawn\Apex\profile\profile.cfg   (gameplay / HUD, cloud-synced)
+
+----------------------------------------------
+WHAT IS IN THERE: local\ VS profile\
+----------------------------------------------
+Apex splits its config the same way CS2 does, under different names:
+
+  local\    THIS PC only - never uploaded. Holds videoconfig.txt (all your
+            graphics settings) and settings.cfg (keybinds + input/audio cvars).
+  profile\  Synced by the Steam Cloud. Holds profile.cfg (gameplay, HUD and
+            accessibility settings) and steam_autocloud.vdf, a small marker
+            file carrying your Steam account id.
+
+So your GRAPHICS settings and your KEYBINDS do NOT follow you to another PC -
+they sit in local\. That is the part this backup really saves for you.
+
+Not copied on purpose:
+  local\psoCache.pso   compiled shader cache, ~230 MB, rebuilt by the game
+  assets\              store and promo art, re-downloaded automatically
+Copying those back would be pointless and would turn a 12 KB config into a
+230 MB folder.
+
+----------------------------------------------
+HOW TO RE-IMPORT THIS CONFIG (this PC or another):
+----------------------------------------------
+  1. Fully close Apex Legends AND Steam. Steam flushes pending Cloud uploads
+     as it exits, so copying while it runs can get your files overwritten.
+
+  2. Disable Steam Cloud for Apex before copying:
+       Steam > right-click Apex Legends > Properties > General > uncheck
+       Steam Cloud
+     Without it, Steam re-downloads its own profile\ on the next launch and
+     reverts the settings you just restored. Files in local\ (graphics and
+     keybinds) are never touched by the Cloud and restore fine either way.
+
+  3. Copy the CONTENTS of "raw_config_for_reimport\" into:
+       %USERPROFILE%\Saved Games\Respawn\Apex\
+     keeping the local\ and profile\ subfolders as they are.
+     (If you moved your "Saved Games" folder, use that location instead.)
+
+  4. Accept overwriting the existing files.
+
+  5. Restart Steam, then Apex, and check your settings in-game.
+
+  6. Only once Apex has run with the restored config, re-enable Steam Cloud if
+     you want it back. In that order the Cloud uploads YOUR files instead of
+     overwriting them.
+
+Note: the first launch after restoring rebuilds the shader cache, so expect
+      one slower startup and some early stutter. That is normal.
+
+ANONYMIZED EXPORT: this copy was stripped for public sharing.
+  - The player name in settings.cfg was blanked, and the Steam account id in
+    profile\steam_autocloud.vdf was zeroed.
+  - The Windows user name was replaced with <USER> in the paths above.
+  Your graphics, gameplay settings and keybinds are untouched, so this export
+  still restores correctly - only the identifying values are gone.
