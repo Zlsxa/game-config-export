@@ -450,10 +450,11 @@ $(if ($isSteam) {
 '@
 } else {
 @'
-  2. Disable cloud saves for Apex in the EA App before copying:
-       EA App > Settings > Application > turn off "Cloud saves"
-     (The EA App moves its settings around between versions - if that path
-     does not match, look for "Cloud saves" anywhere in its settings.)
+  2. Turn OFF cloud saves for Apex in the EA App before copying.
+     Look for "cloud saves" in the EA App settings - it has lived under
+     Settings > Application, and there is also a per-game switch on the Apex
+     page in My Collection. The wording and the menu move between versions, so
+     go by the name rather than by a fixed path.
      Without it the EA App re-downloads its own profile\ on the next launch
      and reverts the settings you just restored. Files in local\ (graphics and
      keybinds) are not cloud-synced and restore fine either way.
