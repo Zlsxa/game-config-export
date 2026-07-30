@@ -1,20 +1,34 @@
 # Game Config Export 🎮
 
-A single **PowerShell** script that backs up and exports your game configuration in one click.
+**PowerShell** scripts that back up and export your game configuration in one click.
 
 **Supported games:** Counter-Strike 2 · Apex Legends
 
-For every config it finds, it produces:
+For every config it finds, a script produces:
 
 1. 📦 **`raw_config_for_reimport/`** — an **exact copy** of the config files, ready to be re-imported as-is.
 2. 📄 **`readable_settings.txt`** — a **human-readable** summary listing **every** setting (all graphics options, all game settings, all keybinds) with friendly labels where known (e.g. `Global GPU detail: High`, `Anisotropic filtering: 4x`). Identifying values are always omitted, so it's safe to share.
 3. 🗺️ **`location_and_reimport.txt`** — where the original config lives and **how to re-import it** (same PC or another one).
 
-👉 See the [`examples/`](examples/) folder for a preview of what the script generates.
+👉 See [`cs2/examples/`](cs2/examples/) and [`apex/examples/`](apex/examples/) for a preview of what they generate.
 
-> ✅ The script is **100% read-only** on your games — it never changes your settings.
+> ✅ The scripts are **100% read-only** on your games — they never change your settings.
 
 ---
+
+## Repository layout
+
+```
+lib/Common.ps1              shared: anonymization, verification, parsers
+cs2/Export-CS2Config.ps1    Counter-Strike 2
+cs2/examples/
+apex/Export-ApexConfig.ps1  Apex Legends
+apex/examples/
+```
+
+One script per game, but the privacy-critical code lives once in `lib/Common.ps1`.
+That's deliberate: the anonymizer and its verification pass are where mistakes
+actually hurt, and a per-game copy is how one of them silently rots.
 
 ## Requirements
 
@@ -23,16 +37,25 @@ For every config it finds, it produces:
 
 ## Install
 
-Just download **`Export-GameConfig.ps1`** (*Code > Download ZIP*, or grab that single file).
+**Download the whole repository** — *Code > Download ZIP*, or:
+
+```powershell
+git clone https://github.com/Zlsxa/game-config-export.git
+```
+
+⚠️ Grabbing a single `.ps1` will **not** work: each game script loads
+`lib\Common.ps1` from the folder above it, and tells you so if it's missing.
 
 ## Usage
 
-**Easy way:** right-click `Export-GameConfig.ps1` > **Run with PowerShell**. It exports every supported game it finds.
+**Easy way:** right-click the script for your game > **Run with PowerShell**.
 
-If Windows blocks scripts (execution policy), open a PowerShell terminal in the folder and run:
+If Windows blocks scripts (execution policy), open a PowerShell terminal in the
+repo folder and run:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Export-GameConfig.ps1
+powershell -ExecutionPolicy Bypass -File .\cs2\Export-CS2Config.ps1
+powershell -ExecutionPolicy Bypass -File .\apex\Export-ApexConfig.ps1
 ```
 
 When it finishes, the export folder opens automatically (default: your **Desktop**).
@@ -40,19 +63,16 @@ When it finishes, the export folder opens automatically (default: your **Desktop
 ### Options
 
 ```powershell
-# One game only (default: all)
-.\Export-GameConfig.ps1 -Game cs2
-.\Export-GameConfig.ps1 -Game apex
-
 # Choose the output folder (default: Desktop)
-.\Export-GameConfig.ps1 -OutputRoot "D:\Backups"
+.\cs2\Export-CS2Config.ps1 -OutputRoot "D:\Backups"
 
 # Force the paths if auto-detection fails
-.\Export-GameConfig.ps1 -SteamPath "D:\Games\Steam"
-.\Export-GameConfig.ps1 -ApexPath "D:\Saved Games\Respawn\Apex"
+.\cs2\Export-CS2Config.ps1  -SteamPath "D:\Games\Steam"
+.\apex\Export-ApexConfig.ps1 -ApexPath "D:\Saved Games\Respawn\Apex"
 
 # Remove identifying values from the copy (to SHARE your config publicly)
-.\Export-GameConfig.ps1 -Anonymize
+.\cs2\Export-CS2Config.ps1   -Anonymize
+.\apex\Export-ApexConfig.ps1 -Anonymize
 ```
 
 ## Where each game keeps its config
@@ -83,18 +103,19 @@ inventing labels would misreport your config. Higher = better, `-1` = not set.
 
 ## Output structure
 
+Each script writes its own export folder on your Desktop:
+
 ```
-Game_Config_Export/
-└── Game_Backup_YYYY-MM-DD_HH-mm/
-    ├── cs2/
-    │   └── <account_id>/
-    │       ├── raw_config_for_reimport/   ← exact copy (re-import)
-    │       ├── readable_settings.txt      ← human summary
-    │       └── location_and_reimport.txt  ← where + how to re-import
-    └── apex/
-        └── apex_profile/
-            └── (same three)
+CS2_Config_Export/                    Apex_Config_Export/
+└── CS2_Backup_YYYY-MM-DD_HH-mm/      └── Apex_Backup_YYYY-MM-DD_HH-mm/
+    └── <account_id>/                     └── apex_profile/
+        ├── raw_config_for_reimport/          ├── raw_config_for_reimport/
+        ├── readable_settings.txt             ├── readable_settings.txt
+        └── location_and_reimport.txt         └── location_and_reimport.txt
 ```
+
+CS2 produces one folder **per Steam account** found; Apex has a single config
+per Windows user.
 
 ## CS2: `local\` vs `remote\` — why this backup is worth having
 
