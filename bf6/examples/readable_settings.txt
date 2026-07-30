@@ -1,0 +1,57 @@
+==============================================
+  BATTLEFIELD 6 CONFIGURATION - READABLE SUMMARY
+  Exported on: 2026-01-01 12:00
+  (Identifying values are omitted - safe to share.)
+==============================================
+
+--- EA APP BUILD: PROFSAVE_profile (25 settings) ---
+
+  [ Video / Render ]
+  GstRender.ResolutionScale                  : 100.000000   # Resolution scale (%)
+  GstRender.FieldOfView                      : 100   # Field of view (degrees)
+  GstRender.Dx12Enabled                      : 1   # DirectX 12
+  GstRender.MotionBlur                       : 0   # Motion blur
+  GstRender.WeaponDOF                        : 0   # Depth of field (weapon)
+  GstRender.ShadowQuality                    : 1 (Low)   # Shadow quality
+  GstRender.Upscaling                        : 0 (Disabled)   # Upscaling
+  GstRender.TextureQuality                   : 3
+  GstRender.MeshQuality                      : 2
+  GstRender.EffectsQuality                   : 1
+  GstRender.VSyncEnabled                     : 0
+
+  [ Display ]
+  GstDisplay.ResolutionWidth                 : 2560
+  GstDisplay.ResolutionHeight                : 1440
+  GstDisplay.FullscreenMode                  : 1
+  GstDisplay.RefreshRate                     : 165
+
+  [ Input / Mouse ]
+  GstInput.MouseSensitivity                  : 0.250000   # Mouse sensitivity
+  GstInput.MouseRawInput                     : 1
+  GstInput.InvertY                           : 0
+
+  [ Audio ]
+  GstAudio.MasterVolume                      : 0.800000
+  GstAudio.VoiceVolume                       : 0.600000
+
+  [ Gameplay ]
+  GstGameplay.AutoReload                     : 1
+
+  [ Interface ]
+  GstUI.MinimapRotation                      : 1
+  GstHud.Opacity                             : 0.900000
+
+--- STEAM BUILD: steam\PROFSAVE_profile (6 settings) ---
+
+  [ Video / Render ]
+  GstRender.ResolutionScale                  : 85.000000   # Resolution scale (%)
+  GstRender.FieldOfView                      : 90   # Field of view (degrees)
+  GstRender.ShadowQuality                    : 0 (Off)   # Shadow quality
+  GstRender.Upscaling                        : 1 (FSR)   # Upscaling
+
+  [ Input / Mouse ]
+  GstInput.MouseSensitivity                  : 0.300000   # Mouse sensitivity
+
+  Note: unlabelled keys are printed raw. Frostbite exposes far more
+        settings than its menu does, and inventing labels for them
+        would misreport your config.

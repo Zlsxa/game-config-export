@@ -2,7 +2,7 @@
 
 **PowerShell** scripts that back up and export your game configuration in one click.
 
-**Supported games:** Counter-Strike 2 · Apex Legends
+**Supported games:** Counter-Strike 2 · Apex Legends · Battlefield 6
 
 For every config it finds, a script produces:
 
@@ -10,7 +10,7 @@ For every config it finds, a script produces:
 2. 📄 **`readable_settings.txt`** — a **human-readable** summary listing **every** setting (all graphics options, all game settings, all keybinds) with friendly labels where known (e.g. `Global GPU detail: High`, `Anisotropic filtering: 4x`). Identifying values are always omitted, so it's safe to share.
 3. 🗺️ **`location_and_reimport.txt`** — where the original config lives and **how to re-import it** (same PC or another one).
 
-👉 See [`cs2/examples/`](cs2/examples/) and [`apex/examples/`](apex/examples/) for a preview of what they generate.
+👉 See [`cs2/examples/`](cs2/examples/), [`apex/examples/`](apex/examples/) and [`bf6/examples/`](bf6/examples/) for a preview of what they generate.
 
 > ✅ The scripts are **100% read-only** on your games — they never change your settings.
 
@@ -24,6 +24,8 @@ cs2/Export-CS2Config.ps1    Counter-Strike 2
 cs2/examples/
 apex/Export-ApexConfig.ps1  Apex Legends
 apex/examples/
+bf6/Export-BF6Config.ps1    Battlefield 6
+bf6/examples/
 ```
 
 One script per game, but the privacy-critical code lives once in `lib/Common.ps1`.
@@ -94,6 +96,7 @@ repo folder and run:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\cs2\Export-CS2Config.ps1
 powershell -ExecutionPolicy Bypass -File .\apex\Export-ApexConfig.ps1
+powershell -ExecutionPolicy Bypass -File .\bf6\Export-BF6Config.ps1
 ```
 
 When it finishes, the export folder opens automatically (default: your **Desktop**).
@@ -119,14 +122,15 @@ When it finishes, the export folder opens automatically (default: your **Desktop
 
 ## Where each game keeps its config
 
-| | Counter-Strike 2 | Apex Legends |
-|---|---|---|
-| Location | `Steam\userdata\<id>\730\` | `%USERPROFILE%\Saved Games\Respawn\Apex\` |
-| Per Steam account | yes — every account is exported | no — one config per Windows user |
-| Graphics | `cs2_video.txt` | `local\videoconfig.txt` |
-| Game settings | `cs2_user_convars*.vcfg` | `profile\profile.cfg` + `local\settings.cfg` |
-| Keybinds | `cs2_user_keys*.vcfg` | `local\settings.cfg` |
-| Cloud-synced half | `remote\` | `profile\` |
+| | Counter-Strike 2 | Apex Legends | Battlefield 6 |
+|---|---|---|---|
+| Location | `Steam\userdata\<id>\730\` | `%USERPROFILE%\Saved Games\Respawn\Apex\` | `%USERPROFILE%\Documents\Battlefield 6\settings\` |
+| Per account | yes — every Steam account is exported | no — one config per Windows user | no |
+| Graphics | `cs2_video.txt` | `local\videoconfig.txt` | `PROFSAVE_profile` (`GstRender.*`) |
+| Game settings | `cs2_user_convars*.vcfg` | `profile\profile.cfg` + `local\settings.cfg` | same file (`GstInput.*`, `GstAudio.*`…) |
+| Keybinds | `cs2_user_keys*.vcfg` | `local\settings.cfg` | same file |
+| Cloud-synced half | `remote\` | `profile\` | whole profile |
+| File format | KeyValues `"k" "v"` | mixed: KeyValues + `k "v"` | `k v`, unquoted |
 
 **In both games the graphics settings are the part the Steam Cloud does *not* sync** — they stay on the PC that wrote them. Your crosshair, sensitivity and binds come back on their own when you log in elsewhere; your video settings don't. That's what this backup is really for.
 
@@ -192,6 +196,29 @@ Apex splits things the same way, under different names:
 
 So for Apex **both your graphics settings and your keybinds** stay on the PC —
 even more reason to keep a backup than for CS2, where at least the binds follow you.
+
+## Battlefield 6: two profiles, one per build
+
+BF6 is the one game here where **the launcher really does change the path**:
+
+```
+settings\PROFSAVE_profile          the EA App build
+settings\steam\PROFSAVE_profile    the Steam build
+```
+
+If you have played both, both files exist and they are **independent** — changing
+your settings in one does not touch the other. The script exports whichever ones
+it finds, each under its own relative path, so restoring puts them back where
+they belong. No question to answer: the files themselves say which builds you have.
+
+A `user.cfg` may also sit in the game's *install* folder. It is an optional
+hand-written tweak file, not part of the profile, and is not exported.
+
+> ⚠️ BF6 is the only supported game I could not test against a real install —
+> it isn't on this machine. The paths and the file format come from a separate
+> tool that handles the same game, and the export/anonymize path is covered by
+> tests against a synthetic profile. Treat the BF6 support as sound but unproven
+> on real data, and check the summary against your in-game menu the first time.
 
 ### Steam or EA App?
 

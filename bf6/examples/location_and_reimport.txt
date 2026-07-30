@@ -1,0 +1,54 @@
+==============================================
+  BATTLEFIELD 6 CONFIG LOCATION & RE-IMPORT
+==============================================
+
+ORIGINAL LOCATION:
+  C:\Users\<USER>\Documents\Battlefield 6\settings
+
+Profile(s) detected:
+  - C:\Users\<USER>\Documents\Battlefield 6\settings\PROFSAVE_profile   (EA App build)
+  - C:\Users\<USER>\Documents\Battlefield 6\settings\steam\PROFSAVE_profile   (Steam build)
+
+----------------------------------------------
+WHY THERE CAN BE TWO PROFILES
+----------------------------------------------
+Battlefield 6 keeps its settings in a plain "Key Value" text file called
+PROFSAVE_profile, and the two builds do NOT put it in the same place:
+
+  settings\PROFSAVE_profile          the EA App build
+  settings\steam\PROFSAVE_profile    the Steam build
+
+If you have played both, both files exist and they are independent - changing
+your settings in one does not touch the other. This export contains whichever
+ones were present, each under its own path, so restoring puts them back where
+they belong.
+
+There may also be a user.cfg in the game's INSTALL folder (not here). It is an
+optional tweak file some players add by hand; it is not part of the profile and
+is not exported.
+
+----------------------------------------------
+HOW TO RE-IMPORT THIS CONFIG (this PC or another):
+----------------------------------------------
+  1. Fully close Battlefield 6 and its launcher. Both write the profile on
+     exit, so copying while they run gets your files overwritten.
+
+  2. Copy the CONTENTS of "raw_config_for_reimport\" into:
+       %USERPROFILE%\Documents\Battlefield 6\settings\
+     keeping the steam\ subfolder if it is there - that is what routes the
+     profile to the right build.
+
+  3. Accept overwriting the existing files.
+
+  4. Start the game and check your settings in the menu.
+
+Note: EA cloud saves can restore their own copy of the profile over yours on
+      the next launch. If your settings revert, turn cloud saves off for
+      Battlefield 6 in the EA App (or in Steam's game properties for the Steam
+      build), restore again, launch once, then turn them back on.
+
+ANONYMIZED EXPORT: this copy was stripped for public sharing.
+  - Identity-looking values (name, persona, tag) were replaced with <REDACTED>.
+  - The Windows user name was replaced with <USER> in the paths above.
+  Your graphics, input and gameplay settings are untouched, so this export
+  still restores correctly - only the identifying values are gone.

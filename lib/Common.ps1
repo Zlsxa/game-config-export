@@ -28,7 +28,10 @@ $SensitiveKeys = @(
     'name', 'password', 'cl_clanid', 'cl_name', 'steamid', 'steamidtext',
     'last_name', 'player_name',
     # Apex
-    'hdr_screenshot_directory', 'voice_input_device', 'miles_output_device'
+    'hdr_screenshot_directory', 'voice_input_device', 'miles_output_device',
+    # Battlefield 6 / EA. The profile carries an EA persona id next to the
+    # name; it is every bit as identifying and is not a setting.
+    'persona', 'personaid', 'userid', 'playerid', 'nucleusid', 'originid'
 )
 
 # Files carrying account/third-party identifiers and NOT needed to restore
@@ -47,7 +50,10 @@ $IdentifyingFiles = @('voice_ban.dt', 'socache.dt', 'remotecache.vdf',
 # those are binary Steam blobs, and decoding one as UTF-8 then writing it back
 # would silently corrupt it. -Anonymize deletes every .dt instead (none of them
 # hold settings), because a binary blob cannot be scrubbed reliably.
-$TextRewritePattern = '\.(vcfg(_lastclouded)?|txt|vdf|cfg|bak)$'
+# Matched on the whole file NAME, not just an extension: Battlefield 6's
+# PROFSAVE_profile has none, and an extension-only rule silently skipped it -
+# the file was copied out with the player name intact.
+$TextRewritePattern = '(\.(vcfg(_lastclouded)?|txt|vdf|cfg|bak)|(^|\\)PROFSAVE_profile)$'
 
 # Last-resort scrubbing of raw identifiers that may appear in any text file:
 # SteamID64 (7656119xxxxxxxxxx), and account ids sitting next to an id key in
@@ -66,17 +72,31 @@ $IdPatterns = @(
 
 $QualityLevels = @{ '0' = 'Low'; '1' = 'Medium'; '2' = 'High'; '3' = 'Very High' }
 
-# Two shapes, because the two games disagree on how a key is written:
-#   CS2  KeyValues : "name"  "Value"   -> anchored on the opening quote
-#   Apex cvar line : name    "Value"   -> anchored on start-of-line
-# A single pattern cannot cover both without also matching `joy_name`, so they
-# stay separate and both run over every text file.
+# Three shapes, because the games disagree on how a key/value pair is written:
+#   CS2  KeyValues : "name"  "Value"      -> anchored on the opening quote
+#   Apex cvar line : name    "Value"      -> anchored on start-of-line
+#   BF6 Frostbite  : GstProfile.Name Val  -> no quotes at all, dotted key
+# One pattern cannot cover all three without also eating keys like `joy_name`,
+# so each keeps its own regex AND its own replacement: blanking works when the
+# value is quoted, but stripping an unquoted value would leave "Key " dangling
+# and turn a settings line into something the game may not parse back.
 $SensitiveRx = @(
     $SensitiveKeys | ForEach-Object {
-        [regex]::new("(`"$([regex]::Escape($_))`"\s+`")[^`"]*(`")", 'IgnoreCase')
+        @{ Rx   = [regex]::new("(`"$([regex]::Escape($_))`"\s+`")[^`"]*(`")", 'IgnoreCase')
+           Repl = '${1}${2}' }
     }
     $SensitiveKeys | ForEach-Object {
-        [regex]::new("(?im)^(\s*$([regex]::Escape($_))\s+`")[^`"]*(`")")
+        @{ Rx   = [regex]::new("(?im)^(\s*$([regex]::Escape($_))\s+`")[^`"]*(`")")
+           Repl = '${1}${2}' }
+    }
+    $SensitiveKeys | ForEach-Object {
+        # The dotted prefix is optional but must end on a dot, so GstProfile.Name
+        # matches while GstAudio.VolumeName does not.
+        # (?!") keeps this off the quoted shapes above: without it this pattern
+        # fires again on what the Apex rule just blanked and rewrites `name ""`
+        # into `name <REDACTED>`, losing the quotes the file format needs.
+        @{ Rx   = [regex]::new("(?im)^(\s*(?:[A-Za-z0-9_]+\.)*$([regex]::Escape($_))\s+)(?!`")\S.*$")
+           Repl = '${1}<REDACTED>' }
     }
 )
 
@@ -181,10 +201,30 @@ function ConvertFrom-ApexBinds {
     return $binds
 }
 
+# Battlefield 6 / Frostbite: `GstRender.ShadowQuality 2` - one pair per line,
+# whitespace-separated, nothing quoted. Comment lines start with ';' or '//'.
+function ConvertFrom-KeyValueLines {
+    param([string]$Content)
+    $result = [ordered]@{}
+    foreach ($line in ($Content -split "\r?\n")) {
+        $t = $line.Trim()
+        if (-not $t -or $t.StartsWith(';') -or $t.StartsWith('//')) { continue }
+        $parts = $t -split '\s+', 2
+        if ($parts.Count -ne 2) { continue }
+        $result[$parts[0]] = $parts[1]
+    }
+    return $result
+}
+
 function Test-Sensitive {
     param([string]$Key)
     $k = $Key.ToLower()
-    return ($SensitiveKeys -contains $k) -or ($k -like '*password*') -or ($k -like '*_directory')
+    # Frostbite namespaces its keys (GstProfile.Name), so judge the last segment
+    # too - otherwise a dotted identity key sails past a summary that advertises
+    # itself as safe to share.
+    $leaf = ($k -split '\.')[-1]
+    return ($SensitiveKeys -contains $k) -or ($SensitiveKeys -contains $leaf) -or
+           ($k -like '*password*') -or ($k -like '*_directory')
 }
 
 function Format-VideoValue {
@@ -292,8 +332,8 @@ function Invoke-ConfigAnonymize {
         }
         if ($f.Name -notmatch $TextRewritePattern) { continue }
         $txt = [System.IO.File]::ReadAllText($f.FullName, $utf8)
-        foreach ($rx in $SensitiveRx) { $txt = $rx.Replace($txt, '${1}${2}') }
-        foreach ($p in $IdPatterns)   { $txt = $p.Rx.Replace($txt, $p.Repl) }
+        foreach ($s in $SensitiveRx) { $txt = $s.Rx.Replace($txt, $s.Repl) }
+        foreach ($p in $IdPatterns)  { $txt = $p.Rx.Replace($txt, $p.Repl) }
         if ($accountIdRx) { $txt = $accountIdRx.Replace($txt, '<ACCOUNT_ID>') }
         foreach ($rx in $UserRx) { $txt = $rx.Replace($txt, '<USER>') }
         [System.IO.File]::WriteAllText($f.FullName, $txt, $utf8)
@@ -354,7 +394,7 @@ function Test-ExportForLeaks {
             if ($rx.IsMatch($txt)) { $leaks.Add("$rel : Windows user name") }
         }
         foreach ($rx in $nameRx) {
-            if ($rx.IsMatch($txt)) { $leaks.Add("$rel : player name") }
+            if ($rx.IsMatch($txt)) { $leaks.Add("$rel : identifying value from the source config") }
         }
     }
 
