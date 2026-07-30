@@ -175,29 +175,14 @@ foreach ($prof in $found) {
     $file = Join-Path $settings $prof.Relative
     $cfg  = ConvertFrom-KeyValueLines (Read-TextFile $file)
 
-    # Frostbite namespaces its keys, so the identity key is not simply "name",
-    # and the profile carries an EA persona id beside it. Register both kinds of
-    # value so the verification pass can prove they are gone - the exact key
-    # names are not documented anywhere reliable, hence matching on shape.
-    foreach ($k in $cfg.Keys) {
-        if ($k -match '(?i)(^|\.)(name|persona|personaid|playername|gamertag|tag|userid|playerid|nucleusid|originid)$' -and
-            "$($cfg[$k])".Length -ge 3) {
-            [void]$PlayerNames.Add("$($cfg[$k])")
-        }
-    }
+    # Register the identity values so the verification pass can prove they are
+    # gone: the player name AND the EA persona id sitting next to it.
+    Register-PlayerName $cfg -KeyPattern '(?i)(^|\.)(name|persona|personaid|playername|gamertag|tag|userid|playerid|nucleusid|originid)$'
 
     [void]$h.AppendLine("--- $($prof.Launcher.ToUpper()) BUILD: $($prof.Relative) ($($cfg.Count) settings) ---")
     [void]$h.AppendLine('')
 
-    $buckets = [ordered]@{}
-    foreach ($c in $BF6Categories) { $buckets[$c.Name] = [System.Collections.Generic.List[string]]::new() }
-    $buckets['Other'] = [System.Collections.Generic.List[string]]::new()
-    foreach ($k in $cfg.Keys) {
-        if (Test-Sensitive $k) { continue }
-        $cat = 'Other'
-        foreach ($c in $BF6Categories) { if ($k -match $c.Pattern) { $cat = $c.Name; break } }
-        $buckets[$cat].Add($k)
-    }
+    $buckets = Group-SettingsByCategory -Keys $cfg.Keys -Categories $BF6Categories
 
     foreach ($catName in $buckets.Keys) {
         $keys = $buckets[$catName]

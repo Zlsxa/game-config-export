@@ -285,20 +285,8 @@ foreach ($acc in $accounts) {
         $cv = ConvertFrom-KeyValues (Read-TextFile $acc.Convars)
         Register-PlayerName $cv
 
-        # Bucket every convar into its category (first matching rule wins).
-        # Lists, not arrays: "$array += $x" reallocates the whole array on
-        # every convar.
-        $buckets = [ordered]@{}
-        foreach ($c in $ConvarCategories) { $buckets[$c.Name] = [System.Collections.Generic.List[string]]::new() }
-        $buckets['Other'] = [System.Collections.Generic.List[string]]::new()
-        $shown = 0
-        foreach ($k in $cv.Keys) {
-            if (Test-Sensitive $k) { continue }
-            $cat = 'Other'
-            foreach ($c in $ConvarCategories) { if ($k -match $c.Pattern) { $cat = $c.Name; break } }
-            $buckets[$cat].Add($k)
-            $shown++
-        }
+        $buckets = Group-SettingsByCategory -Keys $cv.Keys -Categories $ConvarCategories
+        $shown   = ($buckets.Values | ForEach-Object { $_.Count } | Measure-Object -Sum).Sum
 
         [void]$h.AppendLine("--- GAME SETTINGS ($shown convars) ---")
         [void]$h.AppendLine('  (Synced by the Steam Cloud: these come back on their own when you')

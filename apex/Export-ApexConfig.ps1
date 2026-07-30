@@ -325,19 +325,8 @@ foreach ($src in @($profileCfg, $binds)) {
 if ($cv.Count -gt 0) {
     Register-PlayerName $cv
 
-    # Bucket every setting into its category (first matching rule wins).
-    # Lists, not arrays: "$array += $x" reallocates the whole array each time.
-    $buckets = [ordered]@{}
-    foreach ($c in $ApexCvarCategories) { $buckets[$c.Name] = [System.Collections.Generic.List[string]]::new() }
-    $buckets['Other'] = [System.Collections.Generic.List[string]]::new()
-    $shown = 0
-    foreach ($k in $cv.Keys) {
-        if (Test-Sensitive $k) { continue }
-        $cat = 'Other'
-        foreach ($c in $ApexCvarCategories) { if ($k -match $c.Pattern) { $cat = $c.Name; break } }
-        $buckets[$cat].Add($k)
-        $shown++
-    }
+    $buckets = Group-SettingsByCategory -Keys $cv.Keys -Categories $ApexCvarCategories
+    $shown   = ($buckets.Values | ForEach-Object { $_.Count } | Measure-Object -Sum).Sum
 
     [void]$h.AppendLine("--- GAME SETTINGS ($shown settings) ---")
     [void]$h.AppendLine('  (profile\profile.cfg is synced by the Steam Cloud; the settings that')

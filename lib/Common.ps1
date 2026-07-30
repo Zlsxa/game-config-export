@@ -80,24 +80,27 @@ $QualityLevels = @{ '0' = 'Low'; '1' = 'Medium'; '2' = 'High'; '3' = 'Very High'
 # so each keeps its own regex AND its own replacement: blanking works when the
 # value is quoted, but stripping an unquoted value would leave "Key " dangling
 # and turn a settings line into something the game may not parse back.
+# One alternation per shape rather than one regex per key: three passes over
+# each file instead of three-times-the-key-count. Longest key first so
+# `personaid` wins over `persona` - alternation is first-match, not longest-match.
+$keyAlt = ($SensitiveKeys | Sort-Object { $_.Length } -Descending |
+           ForEach-Object { [regex]::Escape($_) }) -join '|'
+
 $SensitiveRx = @(
-    $SensitiveKeys | ForEach-Object {
-        @{ Rx   = [regex]::new("(`"$([regex]::Escape($_))`"\s+`")[^`"]*(`")", 'IgnoreCase')
-           Repl = '${1}${2}' }
-    }
-    $SensitiveKeys | ForEach-Object {
-        @{ Rx   = [regex]::new("(?im)^(\s*$([regex]::Escape($_))\s+`")[^`"]*(`")")
-           Repl = '${1}${2}' }
-    }
-    $SensitiveKeys | ForEach-Object {
-        # The dotted prefix is optional but must end on a dot, so GstProfile.Name
-        # matches while GstAudio.VolumeName does not.
-        # (?!") keeps this off the quoted shapes above: without it this pattern
-        # fires again on what the Apex rule just blanked and rewrites `name ""`
-        # into `name <REDACTED>`, losing the quotes the file format needs.
-        @{ Rx   = [regex]::new("(?im)^(\s*(?:[A-Za-z0-9_]+\.)*$([regex]::Escape($_))\s+)(?!`")\S.*$")
-           Repl = '${1}<REDACTED>' }
-    }
+    # CS2 KeyValues: "name" "Value"
+    @{ Rx   = [regex]::new("(`"(?:$keyAlt)`"\s+`")[^`"]*(`")", 'IgnoreCase')
+       Repl = '${1}${2}' }
+    # Apex cvar line: name "Value"
+    @{ Rx   = [regex]::new("(?im)^(\s*(?:$keyAlt)\s+`")[^`"]*(`")")
+       Repl = '${1}${2}' }
+    # BF6 Frostbite: GstProfile.Name Value - nothing quoted.
+    # The dotted prefix is optional but must end on a dot, so GstProfile.Name
+    # matches while GstAudio.VolumeName does not.
+    # (?!") keeps this off the quoted shapes above: without it this pattern
+    # fires again on what the Apex rule just blanked and rewrites `name ""`
+    # into `name <REDACTED>`, losing the quotes the file format needs.
+    @{ Rx   = [regex]::new("(?im)^(\s*(?:[A-Za-z0-9_]+\.)*(?:$keyAlt)\s+)(?!`")\S.*$")
+       Repl = '${1}<REDACTED>' }
 )
 
 # A game is not always installed under Program Files: a custom install can sit
@@ -273,13 +276,37 @@ function Get-SteamPath {
     return $null
 }
 
+# Bucket setting keys into categories, first matching rule wins, unmatched go to
+# "Other". Identical in all three games, so it lives here rather than three times.
+# Lists, not arrays: "$array += $x" reallocates the whole array on every entry.
+function Group-SettingsByCategory {
+    param($Keys, $Categories)
+    $buckets = [ordered]@{}
+    foreach ($c in $Categories) { $buckets[$c.Name] = [System.Collections.Generic.List[string]]::new() }
+    $buckets['Other'] = [System.Collections.Generic.List[string]]::new()
+    foreach ($k in $Keys) {
+        if (Test-Sensitive $k) { continue }
+        $cat = 'Other'
+        foreach ($c in $Categories) { if ($k -match $c.Pattern) { $cat = $c.Name; break } }
+        $buckets[$cat].Add($k)
+    }
+    return $buckets
+}
+
 # Remember a player name so the verification pass can prove it is gone.
 # Names shorter than 3 chars are not worth hunting for: they would match
 # fragments of half the file and drown the report in false positives.
+# -Keys for games whose identity key is a known literal (CS2, Apex).
+# -KeyPattern for namespaced formats where it is not: Frostbite writes
+# GstProfile.Name and an EA persona id beside it, and those exact key names are
+# not documented anywhere reliable, so match on shape instead of guessing.
 function Register-PlayerName {
-    param($Settings, [string[]]$Keys = @('name', 'player_name', 'cl_name'))
+    param($Settings,
+          [string[]]$Keys = @('name', 'player_name', 'cl_name'),
+          [string]$KeyPattern)
     if (-not $Settings) { return }
-    foreach ($k in $Keys) {
+    $found = if ($KeyPattern) { @($Settings.Keys | Where-Object { $_ -match $KeyPattern }) } else { $Keys }
+    foreach ($k in $found) {
         if ($Settings[$k] -and "$($Settings[$k])".Length -ge 3) {
             [void]$PlayerNames.Add("$($Settings[$k])")
         }
